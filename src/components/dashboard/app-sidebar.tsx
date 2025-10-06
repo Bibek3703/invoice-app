@@ -13,7 +13,9 @@ import {
     SidebarHeader,
     SidebarFooter,
 } from "@/components/ui/sidebar"
-import { menuItems } from "@/constants/navigations"
+import { dashboardMenuItems } from "@/constants/navigations"
+import Link from "next/link"
+import React from "react"
 
 
 
@@ -37,21 +39,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {menuItems.map((item) => (
+                    <SidebarGroupLabel>
+                        <span>Navigation</span>
+                    </SidebarGroupLabel>
+                    {dashboardMenuItems.map((item) =>
+                        item?.menus && item?.menus?.length > 0 ?
+                            <React.Fragment key={item.title}>
+                                <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+                                <SidebarGroupContent>
+                                    <SidebarMenu>
+                                        {item.menus.map((item) => (
+                                            <SidebarMenuItem key={item.title}>
+                                                <SidebarMenuButton asChild>
+                                                    <Link href={item.url || ""}>
+                                                        <item.icon className="h-4 w-4" />
+                                                        <span>{item.title}</span>
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        ))}
+                                    </SidebarMenu>
+                                </SidebarGroupContent>
+                            </React.Fragment>
+                            :
+                            <SidebarMenu>
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild>
-                                        <a href={item.url}>
+                                        <Link href={item.url || ""}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
-                                        </a>
+                                        </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
+                            </SidebarMenu>
+                    )}
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border p-4">

@@ -1,24 +1,29 @@
 import { FileText, Inbox, LayoutDashboard, Send } from "lucide-react";
 
-export const menuItems = [
+export const dashboardMenuItems = [
     {
         title: "Dashboard",
         icon: LayoutDashboard,
-        url: "#",
+        url: "/dashboard",
     },
     {
-        title: "Received Invoices",
+        title: "Invoices",
         icon: Inbox,
-        url: "#received",
-    },
-    {
-        title: "Sent Invoices",
-        icon: Send,
-        url: "#sent",
-    },
-    {
-        title: "All Invoices",
-        icon: FileText,
-        url: "#all",
-    },
+        menus: [{
+            title: "Received Invoices",
+            icon: Inbox,
+            url: "/invoices/#received",
+        },
+        {
+            title: "Sent Invoices",
+            icon: Send,
+            url: "/invoices/#sent",
+        },
+        {
+            title: "All Invoices",
+            icon: FileText,
+            url: "/invoices/#all",
+        },
+        ]
+    }
 ]
