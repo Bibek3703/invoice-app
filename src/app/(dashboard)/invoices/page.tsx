@@ -1,4 +1,6 @@
+import Invoices from '@/components/dashboard/all-invoices';
 import ReceivedInvoices from '@/components/dashboard/received-invoices';
+import SentInvoices from '@/components/dashboard/sent-invoices';
 import Tabs from '@/components/tabs';
 import React from 'react'
 
@@ -18,8 +20,8 @@ async function InvoicesPage() {
                 defaultValue='received'
                 items={[
                     { label: "Received Invoices", value: "received", content: <ReceivedInvoices userId={userId} /> },
-                    { label: "Sent Invoices", value: "sent", content: <div>Sent Invoices for user {userId}</div> },
-                    { label: "All Invoices", value: "all", content: <div>All Invoices for user {userId}</div> },
+                    { label: "Sent Invoices", value: "sent", content: <SentInvoices userId={userId} /> },
+                    { label: "All Invoices", value: "all", content: <Invoices userId={userId} /> },
                 ]}
             />
         </div>

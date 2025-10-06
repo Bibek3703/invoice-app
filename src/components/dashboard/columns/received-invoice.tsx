@@ -1,15 +1,16 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { email, z } from 'zod'
-import { Checkbox } from '../ui/checkbox';
-import DragHandle from './data-table/drag-handle';
+import DragHandle from '../data-table/drag-handle';
+import { Checkbox } from '@/components/ui/checkbox';
 
-export const schema = z.object({
+export const receivedInvoiceSchema = z.object({
     id: z.string(),
     invoiceNumber: z.string(),
-    recipient: z.object({
+    sender: z.object({
         id: z.string(),
         name: z.string(),
         email: z.email(),
+        companyName: z.string().nullable(),
     }),
     status: z.string(),
     totalAmount: z.number(),
@@ -17,7 +18,7 @@ export const schema = z.object({
     createdAt: z.date(),
 })
 
-export const columns: ColumnDef<z.infer<typeof schema>>[] = [
+export const receivedInvoiceColumns: ColumnDef<z.infer<typeof receivedInvoiceSchema>>[] = [
     {
         id: "drag",
         header: () => null,
@@ -51,9 +52,14 @@ export const columns: ColumnDef<z.infer<typeof schema>>[] = [
         header: 'Invoice #',
     },
     {
-        accessorKey: 'recipient.name',
-        header: 'Recipient',
-        cell: ({ row }) => row.original.recipient.name || row.original.recipient.email,
+        accessorKey: 'sender.companyName',
+        header: 'Company',
+        cell: ({ row }) => row.original.sender.companyName || null,
+    },
+    {
+        accessorKey: 'sender.name',
+        header: 'Sender',
+        cell: ({ row }) => row.original.sender.name || row.original.sender.email,
     },
     {
         accessorKey: 'status',

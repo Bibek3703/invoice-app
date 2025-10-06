@@ -33,7 +33,7 @@ function Tabs({ defaultValue, className, items }: TabsProps) {
         <TabsComponent
             value={value}
             onValueChange={setValue}
-            className={cn("flex-1 w-full h-full flex-col justify-start gap-6", className)}
+            className={cn("flex-1 w-full h-full flex-col justify-start", className)}
         >
             <Label htmlFor="view-selector" className="sr-only">
                 View
@@ -63,7 +63,7 @@ function Tabs({ defaultValue, className, items }: TabsProps) {
                 <TabsContent
                     key={item.value}
                     value={item.value}
-                    className="flex flex-col gap-4"
+                    className="relative flex-grow flex flex-col overflow-auto h-full"
                 >
                     {item.content}
                 </TabsContent>

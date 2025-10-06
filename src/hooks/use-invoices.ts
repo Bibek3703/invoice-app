@@ -1,5 +1,9 @@
 import { createInvoice, deleteInvoice, getInvoiceById, getInvoices, updateInvoice } from "@/lib/actions/invoices";
+import { PaginatedResult } from "@/types";
+import { Invoice } from "@/types/invoices";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+
 
 export function useInvoices(userId: string, filter: Parameters<typeof getInvoices>[1] = {}) {
     return useQuery({
@@ -7,11 +11,11 @@ export function useInvoices(userId: string, filter: Parameters<typeof getInvoice
         queryFn: async () => {
             const result = await getInvoices(userId, filter);
             if (!result.success) throw new Error(result.error);
-            return result.data;
+            return result as PaginatedResult<Invoice>;
         },
         enabled: !!userId,
         placeholderData: keepPreviousData,
-        // staleTime: 1000 * 60 * 5, // 5 min "fresh"
+        staleTime: 1000 * 60 * 5, // 5 min "fresh"
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
     });

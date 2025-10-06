@@ -26,8 +26,6 @@ export async function getInvoices(
             type = 'received',
         } = filter;
 
-        console.log('Fetching invoices with filter:', filter);
-
 
         // Build base query with joins for search
         let query = db
@@ -86,14 +84,13 @@ export async function getInvoices(
             conditions.push(
                 or(
                     sql`LOWER(${invoices.invoiceNumber}) LIKE ${searchTerm}`,
-                    sql`LOWER(${users.name}) LIKE ${searchTerm}`,
-                    sql`LOWER(${users.companyName}) LIKE ${searchTerm}`,
+                    sql`LOWER(sender.name) LIKE ${searchTerm}`,
+                    sql`LOWER(sender.company_name) LIKE ${searchTerm}`,
                     sql`LOWER(recipient.name) LIKE ${searchTerm}`,
                     sql`LOWER(recipient.company_name) LIKE ${searchTerm}`
                 )
             );
         }
-
         // Apply where conditions
         query = query.where(and(...conditions));
 
@@ -101,7 +98,10 @@ export async function getInvoices(
         const countQuery = db
             .select({ count: sql<number>`count(*)::int` })
             .from(invoices)
-            .leftJoin(users, eq(invoices.senderId, users.id))
+            .leftJoin(
+                sql`${users} as sender`,
+                sql`${invoices.senderId} = sender.id`
+            )
             .leftJoin(
                 sql`${users} as recipient`,
                 sql`${invoices.recipientId} = recipient.id`
