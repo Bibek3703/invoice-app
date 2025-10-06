@@ -12,17 +12,17 @@ export const dashboardMenuItems = [
         menus: [{
             title: "Received Invoices",
             icon: Inbox,
-            url: "/invoices/#received",
+            url: "/invoices?tab=received",
         },
         {
             title: "Sent Invoices",
             icon: Send,
-            url: "/invoices/#sent",
+            url: "/invoices?tab=sent",
         },
         {
             title: "All Invoices",
             icon: FileText,
-            url: "/invoices/#all",
+            url: "/invoices?tab=all",
         },
         ]
     }

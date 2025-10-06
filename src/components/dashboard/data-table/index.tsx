@@ -9,6 +9,7 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    PaginationState,
     Row,
     SortingState,
     useReactTable,
@@ -33,6 +34,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
+    pagination?: PaginationState
+    setPagination: React.Dispatch<React.SetStateAction<PaginationState>>
+    sorting?: SortingState
+    setSorting?: React.Dispatch<React.SetStateAction<SortingState>>
 }
 
 function DraggableRow<TData extends { id: string }>({
@@ -65,16 +70,18 @@ function DraggableRow<TData extends { id: string }>({
 function DataTable<TData extends { id: string }, TValue>({
     columns,
     data: initialData,
+    pagination = {
+        pageIndex: 0,
+        pageSize: 10,
+    },
+    setPagination,
+    sorting = [{ id: 'createdAt', desc: true }],
+    setSorting,
 }: DataTableProps<TData, TValue>) {
     const [data, setData] = React.useState(() => initialData)
     const [rowSelection, setRowSelection] = React.useState({})
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [pagination, setPagination] = React.useState({
-        pageIndex: 0,
-        pageSize: 10,
-    })
     const sortableId = React.useId()
     const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
 
@@ -124,7 +131,7 @@ function DataTable<TData extends { id: string }, TValue>({
             sensors={sensors}
             id={sortableId}
         >
-            <Table>
+            <Table className='flex-1 h-full w-full'>
                 <TableHeader className="bg-muted sticky top-0 z-10">
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>

@@ -1,19 +1,19 @@
 import { createInvoice, deleteInvoice, getInvoiceById, getInvoices, updateInvoice } from "@/lib/actions/invoices";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export function useInvoices(userId: string) {
+export function useInvoices(userId: string, filter: Parameters<typeof getInvoices>[1] = {}) {
     return useQuery({
-        queryKey: ['invoices', userId],
+        queryKey: ['invoices', filter],
         queryFn: async () => {
-            const result = await getInvoices(userId);
+            const result = await getInvoices(userId, filter);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
         enabled: !!userId,
         placeholderData: keepPreviousData,
-        staleTime: 1000 * 60 * 5, // 5 min "fresh"
-        refetchOnWindowFocus: true,
-        refetchOnReconnect: true,
+        // staleTime: 1000 * 60 * 5, // 5 min "fresh"
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 }
 

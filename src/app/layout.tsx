@@ -16,9 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InvoiceHub - Manage Your Invoices",
+  title: "Invo - Manage Your Invoices",
   description: "Professional invoicing dashboard for managing received and sent invoices",
-  generator: "v0.app",
 }
 
 export default function RootLayout({

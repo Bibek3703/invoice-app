@@ -31,7 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         >
                             <a href="#">
                                 <FileText className="!size-5" />
-                                <span className="text-base font-semibold">Acme Inc.</span>
+                                <span className="text-base font-semibold">Invo</span>
                             </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -62,8 +62,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 </SidebarGroupContent>
                             </React.Fragment>
                             :
-                            <SidebarMenu>
-                                <SidebarMenuItem key={item.title}>
+                            <SidebarMenu key={item.title}>
+                                <SidebarMenuItem>
                                     <SidebarMenuButton asChild>
                                         <Link href={item.url || ""}>
                                             <item.icon className="h-4 w-4" />
