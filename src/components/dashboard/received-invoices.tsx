@@ -7,8 +7,8 @@ import { receivedInvoiceSchema, receivedInvoiceColumns } from './columns';
 import z from 'zod';
 import TableToolbar from './data-table/table-toolbar';
 import { Button } from '../ui/button';
+import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
 import StatusFilter from './status-filter';
-import { ColumnFiltersRow, ColumnFiltersState, Row, Table } from '@tanstack/react-table';
 
 function ReceivedInvoices({ userId }: { userId: string }) {
     const [pagination, setPagination] = React.useState({
@@ -16,7 +16,6 @@ function ReceivedInvoices({ userId }: { userId: string }) {
         pageSize: 10,
     });
     const [sorting, setSorting] = React.useState([{ id: 'createdAt', desc: true }]);
-    const [statusFilter, setStatusFilter] = React.useState<string>('all');
     const [searchQuery, setSearchQuery] = React.useState<string>('');
     const [globalFilter, setGlobalFilter] = React.useState("")
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -24,22 +23,26 @@ function ReceivedInvoices({ userId }: { userId: string }) {
     const { data: invoices, isLoading, isFetching } = useInvoices(userId, {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        status: statusFilter,
+        status: "all",
         type: "received",
         search: searchQuery,
     });
 
-    function renderToolbar<TData extends { id: string }>(table: Table<TData>) {
+    const renderToolbar = <TData extends { id: string }>(table: Table<TData>) => {
+
         return <TableToolbar
             table={table}
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
             searchPlaceholder='Filter invoice number, recipient name, company name, total amount...'
             onSearch={(value) => setSearchQuery(value)}
+            extraActions={(table) => <>
+                <StatusFilter table={table} />
+            </>}
         />
     }
 
-    const onGlobalFilterChange = <TData,>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
+    const onGlobalFilterChange = <TData extends { id: string }>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
         const search = filterValue.toLowerCase()
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const senderName = String(row.getValue("sender_name")).toLowerCase()

@@ -9,7 +9,7 @@ import { Button } from '../ui/button';
 import TableToolbar from './data-table/table-toolbar';
 import StatusFilter from './status-filter';
 import { IconPlus } from '@tabler/icons-react';
-import { Row, Table } from '@tanstack/react-table';
+import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
 
 function SentInvoices({ userId }: { userId: string }) {
     const [pagination, setPagination] = React.useState({
@@ -17,19 +17,20 @@ function SentInvoices({ userId }: { userId: string }) {
         pageSize: 10,
     });
     const [sorting, setSorting] = React.useState([{ id: 'createdAt', desc: true }]);
-    const [statusFilter, setStatusFilter] = React.useState<string>('all');
     const [searchQuery, setSearchQuery] = React.useState<string>('');
     const [globalFilter, setGlobalFilter] = React.useState("")
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const { data: invoices, isLoading } = useInvoices(userId, {
+    const { data: invoices, isLoading, isFetching } = useInvoices(userId, {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        status: statusFilter,
+        status: "all",
         type: "sent",
         search: searchQuery,
     });
 
-    function renderToolbar<TData extends { id: string }>(table: Table<TData>) {
+    const renderToolbar = <TData extends { id: string }>(table: Table<TData>) => {
+
         return (
             <TableToolbar
                 table={table}
@@ -48,7 +49,7 @@ function SentInvoices({ userId }: { userId: string }) {
         );
     }
 
-    const onGlobalFilterChange = <TData,>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
+    const onGlobalFilterChange = <TData extends { id: string }>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
         const search = filterValue.toLowerCase()
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const recipientName = String(row.getValue("recipient_name")).toLowerCase()
@@ -76,11 +77,13 @@ function SentInvoices({ userId }: { userId: string }) {
                     <Button>Create Invoice</Button>
                     <Button variant="outline">Import Invoice</Button>
                 </div>}
-                isLoading={isLoading}
+                isLoading={isLoading || isFetching}
                 toolbar={renderToolbar}
                 globalFilter={globalFilter}
                 setGlobalFilter={setGlobalFilter}
                 globalFilterFn={onGlobalFilterChange}
+                columnFilters={columnFilters}
+                setColumnFilters={setColumnFilters}
             />
         </div>
     )

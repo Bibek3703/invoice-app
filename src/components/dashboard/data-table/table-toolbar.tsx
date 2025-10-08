@@ -21,7 +21,7 @@ function TableToolbar<TData extends & { id: string }>({
     extraActions?: (table: Table<TData>) => React.ReactNode
 }) {
     return (
-        <div className="flex items-center justify-between gap-4 lg:gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
             <div className="flex-1 flex items-center justify-between">
                 <Input
                     placeholder={searchPlaceholder}
@@ -39,7 +39,7 @@ function TableToolbar<TData extends & { id: string }>({
                 </Button>
             </div>
             <div className="flex items-center gap-2">
-                {extraActions && extraActions(table)}
+                {extraActions ? extraActions(table) : null}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm">

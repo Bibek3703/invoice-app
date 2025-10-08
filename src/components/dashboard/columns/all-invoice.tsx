@@ -73,7 +73,7 @@ export const allInvoiceColumns: ColumnDef<z.infer<typeof allInvoiceSchema>>[] = 
         cell: ({ getValue }) => {
             const status = getValue() as string;
             return (
-                <span className={`px-2 py-1 rounded text-xs ${status === 'paid' ? 'bg-green-100 text-green-800' :
+                <span className={`px-2 py-1 rounded text-xs capitalize ${status === 'paid' ? 'bg-green-100 text-green-800' :
                     status === 'sent' ? 'bg-blue-100 text-blue-800' :
                         status === 'overdue' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'

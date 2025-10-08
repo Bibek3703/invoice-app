@@ -11,6 +11,7 @@ export const invoiceStatusOptions = invoiceStatusEnum.enumValues.map((status) =>
 }));
 
 function StatusFilter<TData extends & { id: string }>({ table }: { table: Table<TData> }) {
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

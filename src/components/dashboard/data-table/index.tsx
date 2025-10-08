@@ -169,7 +169,7 @@ function DataTable<TData extends { id: string }, TValue>({
 
     return (
         <div className="w-full flex flex-col justify-start gap-6">
-            {toolbar && toolbar(table)}
+            {toolbar ? toolbar(table) : null}
             <DndContext
                 collisionDetection={closestCenter}
                 modifiers={[restrictToVerticalAxis]}

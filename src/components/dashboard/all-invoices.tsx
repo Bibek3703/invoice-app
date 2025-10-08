@@ -7,7 +7,9 @@ import { allInvoiceSchema, allInvoiceColumns } from './columns';
 import z from 'zod';
 import { Button } from '../ui/button';
 import TableToolbar from './data-table/table-toolbar';
-import { Row, Table } from '@tanstack/react-table';
+import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
+import { IconPlus } from '@tabler/icons-react';
+import StatusFilter from './status-filter';
 
 function Invoices({ userId }: { userId: string }) {
     const [pagination, setPagination] = React.useState({
@@ -15,29 +17,36 @@ function Invoices({ userId }: { userId: string }) {
         pageSize: 10,
     });
     const [sorting, setSorting] = React.useState([{ id: 'createdAt', desc: true }]);
-    const [statusFilter, setStatusFilter] = React.useState<string>('all');
     const [searchQuery, setSearchQuery] = React.useState<string>('');
     const [globalFilter, setGlobalFilter] = React.useState("")
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const { data: invoices, isLoading } = useInvoices(userId, {
+    const { data: invoices, isLoading, isFetching } = useInvoices(userId, {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        status: statusFilter,
+        status: "all",
         type: "all",
         search: searchQuery,
     });
 
-    function renderToolbar<TData extends { id: string }>(table: Table<TData>) {
+    const renderToolbar = <TData extends { id: string }>(table: Table<TData>) => {
         return <TableToolbar
             table={table}
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
             searchPlaceholder='Filter invoice number, recipient name, company name, total amount...'
             onSearch={(value) => setSearchQuery(value)}
+            extraActions={(table) => <>
+                <Button variant="outline" size="sm" onClick={() => { }}>
+                    <IconPlus />
+                    <span className="hidden lg:inline">Create Invoice</span>
+                </Button>
+                <StatusFilter table={table} />
+            </>}
         />
     }
 
-    const onGlobalFilterChange = <TData,>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
+    const onGlobalFilterChange = <TData extends { id: string }>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
         const search = filterValue.toLowerCase()
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const recipientName = String(row.getValue("recipient_name")).toLowerCase()
@@ -59,17 +68,19 @@ function Invoices({ userId }: { userId: string }) {
                 setPagination={setPagination}
                 sorting={sorting}
                 setSorting={setSorting}
+                toolbar={renderToolbar}
                 emptyTitle='No Invoices Yet'
                 emptyDescription="You haven't created any invoices yet. Get started by creating your first invoice."
                 emptyAction={<div className="flex gap-2">
                     <Button>Create Invoice</Button>
                     <Button variant="outline">Import Invoice</Button>
                 </div>}
-                isLoading={isLoading}
-                toolbar={renderToolbar}
+                isLoading={isLoading || isFetching}
                 globalFilter={globalFilter}
                 setGlobalFilter={setGlobalFilter}
                 globalFilterFn={onGlobalFilterChange}
+                columnFilters={columnFilters}
+                setColumnFilters={setColumnFilters}
             />
         </div>
     )
