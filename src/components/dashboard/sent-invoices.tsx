@@ -7,6 +7,9 @@ import { sentInvoiceSchema, sentInvoiceColumns } from './columns';
 import z from 'zod';
 import { Button } from '../ui/button';
 import TableToolbar from './data-table/table-toolbar';
+import StatusFilter from './status-filter';
+import { IconPlus } from '@tabler/icons-react';
+import { Row, Table } from '@tanstack/react-table';
 
 function SentInvoices({ userId }: { userId: string }) {
     const [pagination, setPagination] = React.useState({
@@ -26,6 +29,36 @@ function SentInvoices({ userId }: { userId: string }) {
         search: searchQuery,
     });
 
+    function renderToolbar<TData extends { id: string }>(table: Table<TData>) {
+        return (
+            <TableToolbar
+                table={table}
+                globalFilter={globalFilter}
+                setGlobalFilter={setGlobalFilter}
+                searchPlaceholder='Filter invoice number, recipient name, recipient company name, total amount...'
+                onSearch={(value) => setSearchQuery(value)}
+                extraActions={(table) => <>
+                    <Button variant="outline" size="sm" onClick={() => { }}>
+                        <IconPlus />
+                        <span className="hidden lg:inline">Create Invoice</span>
+                    </Button>
+                    <StatusFilter table={table} />
+                </>}
+            />
+        );
+    }
+
+    const onGlobalFilterChange = <TData,>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
+        const search = filterValue.toLowerCase()
+        const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
+        const recipientName = String(row.getValue("recipient_name")).toLowerCase()
+        const companyName = String(row.getValue("recipient_companyName")).toLowerCase()
+        const totalAmount = String(row.getValue("totalAmount"))
+        return invoiceNumber.includes(search) ||
+            recipientName.includes(search) ||
+            totalAmount.includes(search) ||
+            companyName.includes(search)
+    }
 
     return (
         <div className='flex-1 h-full w-full'>
@@ -44,25 +77,10 @@ function SentInvoices({ userId }: { userId: string }) {
                     <Button variant="outline">Import Invoice</Button>
                 </div>}
                 isLoading={isLoading}
-                toolbar={(table) => <TableToolbar
-                    table={table}
-                    globalFilter={globalFilter}
-                    setGlobalFilter={setGlobalFilter}
-                    searchPlaceholder='Filter invoice number, recipient name, recipient company name, total amount...'
-                    onSearch={(value) => setSearchQuery(value)}
-                />
-                }
+                toolbar={renderToolbar}
                 globalFilter={globalFilter}
                 setGlobalFilter={setGlobalFilter}
-                globalFilterFn={(row, columnId, filterValue) => {
-                    const search = filterValue.toLowerCase()
-                    const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
-                    const recipientName = String(row.getValue("recipient_name")).toLowerCase()
-                    const companyName = String(row.getValue("recipient_companyName")).toLowerCase()
-                    const totalAmount = String(row.getValue("totalAmount"))
-
-                    return invoiceNumber.includes(search) || recipientName.includes(search) || totalAmount.includes(search) || companyName.includes(search)
-                }}
+                globalFilterFn={onGlobalFilterChange}
             />
         </div>
     )
