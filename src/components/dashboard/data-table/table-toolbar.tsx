@@ -80,7 +80,7 @@ function TableToolbar<TData extends & { id: string }>({
                                             column.toggleVisibility(!!value)
                                         }
                                     >
-                                        {column.id}
+                                        {column.id.replaceAll("_", " ")}
                                     </DropdownMenuCheckboxItem>
                                 )
                             })}

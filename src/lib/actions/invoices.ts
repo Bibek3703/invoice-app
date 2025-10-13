@@ -26,8 +26,6 @@ export async function fetchInvoices(
 
         const offset = (page - 1) * pageSize;
 
-        console.log({ page, pageSize })
-
         // Build conditions
         const conditions: SQL[] = [eq(invoices.companyId, companyId)];
         if (direction) conditions.push(eq(invoices.direction, direction));
@@ -46,8 +44,16 @@ export async function fetchInvoices(
         const invoiceList = await db.query.invoices.findMany({
             where: and(...conditions),
             with: {
-                sender: true,
-                recipient: true,
+                sender: {
+                    with: {
+                        company: true
+                    }
+                },
+                recipient: {
+                    with: {
+                        company: true
+                    }
+                },
                 items: true,
                 payments: true,
                 company: true,
@@ -56,6 +62,7 @@ export async function fetchInvoices(
             limit: pageSize,
             offset,
         });
+
 
         return {
             success: true,

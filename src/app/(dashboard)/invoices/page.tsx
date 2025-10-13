@@ -6,7 +6,7 @@ import { getUserCompanies } from '@/lib/actions/users';
 import React from 'react'
 
 async function InvoicesPage() {
-    const userId = '1c17e1a9-f5fc-4cfd-8d67-940070578e68'; // For test only TODO: Get from auth
+    const userId = '988d3e56-8605-4321-8785-9f4df995a769'; // For test only TODO: Get from auth
 
     const companies = await getUserCompanies(userId)
 

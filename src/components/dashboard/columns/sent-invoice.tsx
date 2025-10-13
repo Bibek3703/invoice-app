@@ -2,6 +2,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { email, z } from 'zod'
 import DragHandle from '../data-table/drag-handle';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Company } from '@/db/schema';
 
 export const sentInvoiceSchema = z.object({
     id: z.string(),
@@ -10,7 +11,7 @@ export const sentInvoiceSchema = z.object({
         id: z.string(),
         name: z.string(),
         email: z.email(),
-        companyName: z.string().nullable(),
+        company: z.custom<Company>(),
     }),
     status: z.string(),
     totalAmount: z.number(),
@@ -52,13 +53,13 @@ export const sentInvoiceColumns: ColumnDef<z.infer<typeof sentInvoiceSchema>>[] 
         header: 'Invoice #',
     },
     {
-        accessorKey: 'recipient.companyName',
+        accessorKey: 'recipient.company.name',
         header: 'Company',
-        cell: ({ row }) => row.original.recipient.companyName || null,
+        cell: ({ row }) => row.original.recipient.company.name || null,
     },
     {
         accessorKey: 'recipient.name',
-        header: 'Recipient',
+        header: 'Name',
         cell: ({ row }) => row.original.recipient.name || row.original.recipient.email,
     },
     {

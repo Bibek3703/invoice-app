@@ -85,12 +85,12 @@ export async function createInvoices(
     const newInvoiceNotifications: NewNotification[] = [];
 
     for (let i = 0; i < 50; i++) {
-        const companyId = randomElement(companies.map((item) => item.id));
         const contactIds = contacts.map((item) => item.id)
-        const senderId = randomElement(contactIds);
+        const senders = contacts.filter((item) => item.companyId !== null)
+        const sender = randomElement(senders);
 
         // Ensure recipient ≠ sender
-        let recipientId = randomElement(contactIds.filter((item) => item !== senderId));
+        let recipientId = randomElement(contactIds.filter((item) => item !== sender.id));
 
         const issueDate = faker.date.past();
         const dueDate = new Date(issueDate.getTime() + faker.number.int({ min: 7, max: 30 }) * 86400000);
@@ -126,108 +126,108 @@ export async function createInvoices(
         const totalAmount = subtotal + taxTotal;
         const status = randomElement(['paid', 'sent', 'viewed', 'draft', 'overdue'] as const);
 
-        invoiceNumber: `INV-${1000 + i}`
-
-        newInvoices.push({
-            id: invoiceId,
-            companyId,
-            senderId,
-            recipientId,
-            invoiceNumber: `INV-${1000 + i}`,
-            status,
-            direction: randomElement(['incoming', 'outgoing'] as const),
-            issueDate,
-            dueDate,
-            subtotal: String(subtotal),
-            taxTotal: String(taxTotal),
-            totalAmount: String(totalAmount),
-            currency: 'USD',
-            source: 'manual',
-        });
-
-        // Paid invoices → add payment
-        if (status === 'paid') {
-            const paymentType = randomElement([
-                'credit_card',
-                'bank_account',
-                'paypal',
-                'stripe',
-                'cash',
-            ] as const);
-
-            let payerId = null
-
-            const recepient = contacts.find((item) => item.id === recipientId)
-
-            if (recepient?.companyId) {
-                payerId = recipientId
-            }
-
-            const paymentMethod = paymentMethods.find((item) => item.companyId === companyId && item.type === paymentType)
-
-            let paymentMethodId = null;
-
-            if (paymentMethod) {
-                paymentMethodId = paymentMethod.id
-            }
-
-
-
-            newInvoicePayments.push({
-                companyId,
-                invoiceId,
-                payerId,
-                payerName: !payerId ? randomElement([faker.company.name(), faker.person.fullName()]) : null,
-                amount: String(totalAmount),
+        if (sender) {
+            newInvoices.push({
+                id: invoiceId,
+                companyId: sender.companyId,
+                senderId: sender.id,
+                recipientId,
+                invoiceNumber: `INV-${1000 + i}`,
+                status,
+                direction: randomElement(['incoming', 'outgoing'] as const),
+                issueDate,
+                dueDate,
+                subtotal: String(subtotal),
+                taxTotal: String(taxTotal),
+                totalAmount: String(totalAmount),
                 currency: 'USD',
-                paymentMethod: paymentType,
-                paymentMethodId,
-                transactionId: paymentType === 'cash' ? null : faker.string.alphanumeric(10),
-                status: 'completed',
-                paymentDate: new Date(),
-                createdAt: new Date(),
+                source: 'manual',
             });
 
-            newInvoiceNotifications.push({
-                id: faker.string.uuid(),
-                companyId: companyId,
-                invoiceId: invoiceId,
-                type: 'payment_received',
-                message: `Payment of ${totalAmount} USD received.`,
-                isRead: faker.datatype.boolean(),
-                createdAt: faker.date.recent(),
-            });
-        }
-        const typesForInvoice: Array<typeof notificationTypeEnum.enumValues[number]> = [];
 
-        switch (status) {
-            case 'draft':
-                // maybe no notification
-                break;
-            case 'sent':
-                typesForInvoice.push('invoice_sent');
-                break;
-            case 'viewed':
-                typesForInvoice.push('invoice_viewed');
-                break;
-            case 'overdue':
-                typesForInvoice.push('invoice_overdue', 'reminder');
-                break;
-            case 'paid':
-                typesForInvoice.push('payment_received');
-                break;
-        }
+            // Paid invoices → add payment
+            if (status === 'paid') {
+                const paymentType = randomElement([
+                    'credit_card',
+                    'bank_account',
+                    'paypal',
+                    'stripe',
+                    'cash',
+                ] as const);
 
-        for (const type of typesForInvoice) {
-            newInvoiceNotifications.push({
-                id: faker.string.uuid(),
-                companyId: companyId,
-                invoiceId: invoiceId,
-                type,
-                message: faker.lorem.sentence(),
-                isRead: faker.datatype.boolean(),
-                createdAt: faker.date.recent(),
-            });
+                let payerId = null
+
+                const recepient = contacts.find((item) => item.id === recipientId)
+
+                if (recepient?.companyId) {
+                    payerId = recipientId
+                }
+
+                const paymentMethod = paymentMethods.find((item) => item.companyId === sender.companyId && item.type === paymentType)
+
+                let paymentMethodId = null;
+
+                if (paymentMethod) {
+                    paymentMethodId = paymentMethod.id
+                }
+
+                newInvoicePayments.push({
+                    companyId: sender.companyId,
+                    invoiceId,
+                    payerId,
+                    payerName: !payerId ? randomElement([faker.company.name(), faker.person.fullName()]) : null,
+                    amount: String(totalAmount),
+                    currency: 'USD',
+                    paymentMethod: paymentType,
+                    paymentMethodId,
+                    transactionId: paymentType === 'cash' ? null : faker.string.alphanumeric(10),
+                    status: 'completed',
+                    paymentDate: new Date(),
+                    createdAt: new Date(),
+                });
+
+                newInvoiceNotifications.push({
+                    id: faker.string.uuid(),
+                    companyId: sender.companyId,
+                    invoiceId: invoiceId,
+                    type: 'payment_received',
+                    message: `Payment of ${totalAmount} USD received.`,
+                    isRead: faker.datatype.boolean(),
+                    createdAt: faker.date.recent(),
+                });
+            }
+
+            const typesForInvoice: Array<typeof notificationTypeEnum.enumValues[number]> = [];
+
+            switch (status) {
+                case 'draft':
+                    // maybe no notification
+                    break;
+                case 'sent':
+                    typesForInvoice.push('invoice_sent');
+                    break;
+                case 'viewed':
+                    typesForInvoice.push('invoice_viewed');
+                    break;
+                case 'overdue':
+                    typesForInvoice.push('invoice_overdue', 'reminder');
+                    break;
+                case 'paid':
+                    typesForInvoice.push('payment_received');
+                    break;
+            }
+
+            for (const type of typesForInvoice) {
+                newInvoiceNotifications.push({
+                    id: faker.string.uuid(),
+                    companyId: sender.companyId,
+                    invoiceId: invoiceId,
+                    type,
+                    message: faker.lorem.sentence(),
+                    isRead: faker.datatype.boolean(),
+                    createdAt: faker.date.recent(),
+                });
+            }
         }
     }
 

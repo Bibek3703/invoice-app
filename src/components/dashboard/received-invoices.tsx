@@ -46,7 +46,7 @@ function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: st
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const senderName = String(row.getValue("sender_name")).toLowerCase()
         const totalAmount = String(row.getValue("totalAmount"))
-        const companyName = String(row.getValue("sender_companyName")).toLowerCase()
+        const companyName = String(row.getValue("sender_company_name")).toLowerCase()
 
         return invoiceNumber.includes(search) ||
             senderName.includes(search) ||
