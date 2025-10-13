@@ -1,98 +1,60 @@
-import { createInvoice, deleteInvoice, getInvoiceById, getInvoices, updateInvoice } from "@/lib/actions/invoices";
-import { PaginatedResult } from "@/types";
-import { Invoice } from "@/types/invoices";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+"use client";
 
+import { useQuery } from "@tanstack/react-query";
+import {
+    getAllInvoices,
+    getInvoiceById,
+    getSentInvoices,
+    getReceivedInvoices,
+} from "@/lib/actions/invoices";
+import { FilterOption, InvoiceSearchColumnType } from "@/types";
 
+// Query Keys
+export const invoiceKeys = {
+    all: ["invoices"] as const,
+    list: (filters: FilterOption<InvoiceSearchColumnType>) => [...invoiceKeys.all, "list", filters] as const,
+    sent: (filters: FilterOption<InvoiceSearchColumnType>) => [...invoiceKeys.all, "sent", filters] as const,
+    received: (filters: FilterOption<InvoiceSearchColumnType>) => [...invoiceKeys.all, "received", filters] as const,
+    status: (status: string, filters: FilterOption<InvoiceSearchColumnType>) => [...invoiceKeys.all, "status", status, filters] as const,
+    detail: (id: string) => [...invoiceKeys.all, "detail", id] as const,
+};
 
-export function useInvoices(userId: string, filter: Parameters<typeof getInvoices>[1] = {}) {
+/** Fetch all invoices */
+export function useAllInvoices(companyId: string, filters: FilterOption<InvoiceSearchColumnType> = {}) {
     return useQuery({
-        queryKey: ['invoices', filter],
-        queryFn: async () => {
-            const result = await getInvoices(userId, filter);
-            if (!result.success) throw new Error(result.error);
-            return result as PaginatedResult<Invoice>;
-        },
-        enabled: !!userId,
-        placeholderData: keepPreviousData,
-        staleTime: 1000 * 60 * 5, // 5 min "fresh"
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        queryKey: invoiceKeys.list(filters),
+        queryFn: () => getAllInvoices(companyId, filters),
+        staleTime: 1000 * 60 * 5, // cache for 5 minutes
     });
 }
 
-export function useInvoice(invoiceId: string) {
+/** Fetch sent invoices (outgoing) */
+export function useSentInvoices(companyId: string, filters: FilterOption<InvoiceSearchColumnType> = {}) {
     return useQuery({
-        queryKey: ['invoice', invoiceId],
+        queryKey: invoiceKeys.sent(filters),
+        queryFn: () => getSentInvoices(companyId, filters),
+        staleTime: 1000 * 60 * 5,
+    });
+}
+
+/** Fetch received invoices (incoming) */
+export function useReceivedInvoices(companyId: string, filters: FilterOption<InvoiceSearchColumnType> = {}) {
+    return useQuery({
+        queryKey: invoiceKeys.received(filters),
+        queryFn: () => getReceivedInvoices(companyId, filters),
+        staleTime: 1000 * 60 * 5,
+    });
+}
+
+/** Fetch a single invoice by ID */
+export function useInvoice(companyId: string, invoiceId: string | null | undefined) {
+    return useQuery({
+        queryKey: invoiceKeys.detail(invoiceId || ""),
         queryFn: async () => {
-            const result = await getInvoiceById(invoiceId);
-            if (!result.success) throw new Error(result.error);
-            return result.data;
+            if (!invoiceId) throw new Error("Invoice ID is required");
+            return getInvoiceById(companyId, invoiceId);
         },
-        enabled: !!invoiceId,
-    });
-}
-
-export function useCreateInvoice() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async (data: Parameters<typeof createInvoice>[0]) => {
-            const result = await createInvoice(data);
-            if (!result.success) throw new Error(result.error);
-            return result.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['invoices'] });
-            // toast.success('Invoice created successfully!');
-        },
-        onError: (error: Error) => {
-            // toast.error(error.message || 'Failed to create invoice');
-        },
-    });
-}
-
-export function useUpdateInvoiceStatus() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({
-            invoiceId,
-            data,
-        }: {
-            invoiceId: string;
-            data: Parameters<typeof updateInvoice>[1];
-        }) => {
-            const result = await updateInvoice(invoiceId, data);
-            if (!result.success) throw new Error(result.error);
-            return result.data;
-        },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['invoices'] });
-            queryClient.invalidateQueries({ queryKey: ['invoice', variables.invoiceId] });
-            // toast.success('Invoice status updated!');
-        },
-        onError: (error: Error) => {
-            // toast.error(error.message || 'Failed to update invoice');
-        },
-    });
-}
-
-export function useDeleteInvoice() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async (invoiceId: string) => {
-            const result = await deleteInvoice(invoiceId);
-            if (!result.success) throw new Error(result.error);
-            return result;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['invoices'] });
-            // toast.success('Invoice deleted successfully!');
-        },
-        onError: (error: Error) => {
-            // toast.error(error.message || 'Failed to delete invoice');
-        },
+        enabled: !!invoiceId, // only run if ID is provided
+        staleTime: 1000 * 60 * 5,
     });
 }

@@ -1,13 +1,246 @@
 import 'dotenv/config';
 import { db } from '.'; // your drizzle db instance
-import {
-    users,
-    invoices,
-    invoiceItems,
-    paymentMethods,
-    payments,
-    notifications
-} from './schema';
+import { faker } from '@faker-js/faker';
+import { companies, Company, Contact, contacts, Invoice, invoiceItems, invoices, NewCompany, NewContact, NewInvoice, NewInvoiceItem, NewNotification, NewPayment, NewPaymentMethod, NewUser, notifications, notificationTypeEnum, PaymentMethod, paymentMethods, payments, User, users } from './schema';
+import { randomElement } from '@/lib/utils';
+
+async function createUsers() {
+    // 1️⃣ Create Users
+    const newUsers: NewUser[] = [];
+    for (let i = 0; i < 5; i++) {
+        const userId = faker.string.uuid();
+        newUsers.push({
+            id: userId,
+            name: faker.person.fullName(),
+            email: faker.internet.email(),
+            role: 'user',
+            userType: randomElement(['individual', 'freelancer', 'business'] as const),
+        });
+
+    }
+    return await db.insert(users).values(newUsers).returning();
+}
+
+async function createCompanies(userIds: string[]) {
+    // 2️⃣ Create Companies
+    const newCompanys: NewCompany[] = [];
+    for (let i = 0; i < 10; i++) {
+        newCompanys.push({
+            ownerId: randomElement(userIds),
+            name: faker.company.name(),
+            email: faker.internet.email(),
+            phone: faker.phone.number(),
+            website: faker.internet.url(),
+            address: {
+                street: faker.location.street(),
+                city: faker.location.city(),
+                state: faker.location.state(),
+                postalCode: faker.location.zipCode(),
+                country: faker.location.country(),
+            },
+        });
+    }
+    return await db.insert(companies).values(newCompanys).returning();
+}
+
+async function createContacts(companyIds: string[]) {
+    // 3️⃣ Create Contacts (clients/vendors)
+    const newContacts: NewContact[] = [];
+    for (let i = 0; i < 30; i++) {
+        newContacts.push({
+            companyId: randomElement(companyIds),
+            name: faker.person.fullName(),
+            email: faker.internet.email(),
+            contactType: randomElement(['client', 'vendor'] as const),
+            isRegisteredUser: faker.datatype.boolean(),
+            phone: faker.phone.number(),
+        });
+    }
+    return await db.insert(contacts).values(newContacts).returning();
+}
+
+async function createPaymentMethods(companyIds: string[]) {
+    // 4️⃣ Create Payment Methods
+    const newPaymentMethods: NewPaymentMethod[] = [];
+    for (const companyId of companyIds) {
+        newPaymentMethods.push({
+            companyId,
+            type: randomElement(['credit_card', 'paypal', 'bank_account'] as const),
+            isDefault: true,
+        });
+    }
+    return await db.insert(paymentMethods).values(newPaymentMethods).returning();
+}
+
+
+
+export async function createInvoices(
+    companies: Company[],
+    contacts: Contact[],
+    paymentMethods: PaymentMethod[]
+) {
+    const newInvoices: NewInvoice[] = [];
+    const newInvoiceItems: NewInvoiceItem[] = [];
+    const newInvoicePayments: NewPayment[] = [];
+    const newInvoiceNotifications: NewNotification[] = [];
+
+    for (let i = 0; i < 50; i++) {
+        const companyId = randomElement(companies.map((item) => item.id));
+        const contactIds = contacts.map((item) => item.id)
+        const senderId = randomElement(contactIds);
+
+        // Ensure recipient ≠ sender
+        let recipientId = randomElement(contactIds.filter((item) => item !== senderId));
+
+        const issueDate = faker.date.past();
+        const dueDate = new Date(issueDate.getTime() + faker.number.int({ min: 7, max: 30 }) * 86400000);
+
+        let subtotal = 0;
+        const itemCount = faker.number.int({ min: 1, max: 5 });
+
+        const invoiceId = faker.string.uuid();
+
+        for (let j = 0; j < itemCount; j++) {
+            const quantity = faker.number.int({ min: 1, max: 10 });
+            const unitPrice = faker.number.int({ min: 10, max: 500 });
+            const subtotalItem = quantity * unitPrice;
+            const taxItem = subtotalItem * 0.1;
+            const totalItem = subtotalItem + taxItem;
+
+            subtotal += subtotalItem;
+
+            newInvoiceItems.push({
+                invoiceId,
+                description: faker.commerce.productDescription(),
+                quantity: String(quantity),
+                unitType: 'pcs',
+                unitPrice: String(unitPrice),
+                taxRate: '0.1',
+                subtotal: String(subtotalItem),
+                taxAmount: String(taxItem),
+                total: String(totalItem),
+            });
+        }
+
+        const taxTotal = subtotal * 0.1;
+        const totalAmount = subtotal + taxTotal;
+        const status = randomElement(['paid', 'sent', 'viewed', 'draft', 'overdue'] as const);
+
+        invoiceNumber: `INV-${1000 + i}`
+
+        newInvoices.push({
+            id: invoiceId,
+            companyId,
+            senderId,
+            recipientId,
+            invoiceNumber: `INV-${1000 + i}`,
+            status,
+            direction: randomElement(['incoming', 'outgoing'] as const),
+            issueDate,
+            dueDate,
+            subtotal: String(subtotal),
+            taxTotal: String(taxTotal),
+            totalAmount: String(totalAmount),
+            currency: 'USD',
+            source: 'manual',
+        });
+
+        // Paid invoices → add payment
+        if (status === 'paid') {
+            const paymentType = randomElement([
+                'credit_card',
+                'bank_account',
+                'paypal',
+                'stripe',
+                'cash',
+            ] as const);
+
+            let payerId = null
+
+            const recepient = contacts.find((item) => item.id === recipientId)
+
+            if (recepient?.companyId) {
+                payerId = recipientId
+            }
+
+            const paymentMethod = paymentMethods.find((item) => item.companyId === companyId && item.type === paymentType)
+
+            let paymentMethodId = null;
+
+            if (paymentMethod) {
+                paymentMethodId = paymentMethod.id
+            }
+
+
+
+            newInvoicePayments.push({
+                companyId,
+                invoiceId,
+                payerId,
+                payerName: !payerId ? randomElement([faker.company.name(), faker.person.fullName()]) : null,
+                amount: String(totalAmount),
+                currency: 'USD',
+                paymentMethod: paymentType,
+                paymentMethodId,
+                transactionId: paymentType === 'cash' ? null : faker.string.alphanumeric(10),
+                status: 'completed',
+                paymentDate: new Date(),
+                createdAt: new Date(),
+            });
+
+            newInvoiceNotifications.push({
+                id: faker.string.uuid(),
+                companyId: companyId,
+                invoiceId: invoiceId,
+                type: 'payment_received',
+                message: `Payment of ${totalAmount} USD received.`,
+                isRead: faker.datatype.boolean(),
+                createdAt: faker.date.recent(),
+            });
+        }
+        const typesForInvoice: Array<typeof notificationTypeEnum.enumValues[number]> = [];
+
+        switch (status) {
+            case 'draft':
+                // maybe no notification
+                break;
+            case 'sent':
+                typesForInvoice.push('invoice_sent');
+                break;
+            case 'viewed':
+                typesForInvoice.push('invoice_viewed');
+                break;
+            case 'overdue':
+                typesForInvoice.push('invoice_overdue', 'reminder');
+                break;
+            case 'paid':
+                typesForInvoice.push('payment_received');
+                break;
+        }
+
+        for (const type of typesForInvoice) {
+            newInvoiceNotifications.push({
+                id: faker.string.uuid(),
+                companyId: companyId,
+                invoiceId: invoiceId,
+                type,
+                message: faker.lorem.sentence(),
+                isRead: faker.datatype.boolean(),
+                createdAt: faker.date.recent(),
+            });
+        }
+    }
+
+    await db.insert(invoices).values(newInvoices);
+    console.log('✅ Invoices seeded');
+    await db.insert(invoiceItems).values(newInvoiceItems);
+    console.log('✅ Invoice items seeded');
+    await db.insert(payments).values(newInvoicePayments);
+    console.log('✅ Payments seeded');
+    await db.insert(notifications).values(newInvoiceNotifications);
+    console.log('✅ Notifications seeded');
+}
+
 
 async function seed() {
     console.log('🌱 Starting seed...');
@@ -18,411 +251,27 @@ async function seed() {
     await db.delete(invoiceItems);
     await db.delete(invoices);
     await db.delete(paymentMethods);
+    await db.delete(contacts);
+    await db.delete(companies);
     await db.delete(users);
 
-    // Seed Users
-    const [user1, user2, user3, user4] = await db.insert(users).values([
-        {
-            email: 'john.doe@techcorp.com',
-            name: 'John Doe',
-            companyName: 'TechCorp Solutions',
-            phone: '+1-555-0101',
-            address: {
-                street: '123 Tech Street',
-                city: 'San Francisco',
-                state: 'CA',
-                postalCode: '94102',
-                country: 'USA'
-            },
-            taxId: 'US-123456789'
-        },
-        {
-            email: 'sarah.smith@designstudio.com',
-            name: 'Sarah Smith',
-            companyName: 'Creative Design Studio',
-            phone: '+1-555-0102',
-            address: {
-                street: '456 Creative Ave',
-                city: 'New York',
-                state: 'NY',
-                postalCode: '10001',
-                country: 'USA'
-            },
-            taxId: 'US-987654321'
-        },
-        {
-            email: 'mike.johnson@consulting.com',
-            name: 'Mike Johnson',
-            companyName: 'Johnson Consulting Group',
-            phone: '+1-555-0103',
-            address: {
-                street: '789 Business Blvd',
-                city: 'Chicago',
-                state: 'IL',
-                postalCode: '60601',
-                country: 'USA'
-            },
-            taxId: 'US-456789123'
-        },
-        {
-            email: 'emma.wilson@marketing.com',
-            name: 'Emma Wilson',
-            companyName: 'Wilson Marketing Agency',
-            phone: '+1-555-0104',
-            address: {
-                street: '321 Market Street',
-                city: 'Austin',
-                state: 'TX',
-                postalCode: '73301',
-                country: 'USA'
-            },
-            taxId: 'US-789123456'
-        }
-    ]).returning();
+    console.log('✅ Tables cleared');
 
+    const newUsers = (await createUsers()) as unknown as User[]
     console.log('✅ Users seeded');
 
-    // Seed Payment Methods
-    await db.insert(paymentMethods).values([
-        {
-            userId: user1.id,
-            type: 'credit_card',
-            cardLast4: '4242',
-            cardBrand: 'Visa',
-            cardExpMonth: 12,
-            cardExpYear: 2026,
-            isDefault: true
-        },
-        {
-            userId: user2.id,
-            type: 'credit_card',
-            cardLast4: '5555',
-            cardBrand: 'Mastercard',
-            cardExpMonth: 8,
-            cardExpYear: 2025,
-            isDefault: true
-        },
-        {
-            userId: user3.id,
-            type: 'bank_account',
-            accountLast4: '6789',
-            routingNumber: '110000000',
-            isDefault: true
-        },
-        {
-            userId: user4.id,
-            type: 'paypal',
-            isDefault: true
-        }
-    ]);
+    const userIds = newUsers.map((item) => item.id)
+    const newCompanies = (await createCompanies(userIds)) as unknown as Company[]
+    console.log('✅ Companies seeded');
 
+    const companyIds = newCompanies.map((item) => item.id)
+    const newContacts = (await createContacts(companyIds)) as unknown as Contact[]
+    console.log('✅ Contacts seeded');
+
+    const newPaymentMethods = (await createPaymentMethods(companyIds)) as unknown as PaymentMethod[]
     console.log('✅ Payment methods seeded');
 
-    // Seed Invoices
-    const [invoice1, invoice2, invoice3, invoice4, invoice5] = await db.insert(invoices).values([
-        {
-            invoiceNumber: 'INV-2025-0001',
-            status: 'paid',
-            senderId: user1.id,
-            recipientId: user2.id,
-            issueDate: new Date('2025-09-15'),
-            dueDate: new Date('2025-10-15'),
-            paidDate: new Date('2025-10-10'),
-            subtotal: '5000.00',
-            taxTotal: '500.00',
-            discountAmount: '0.00',
-            totalAmount: '5500.00',
-            currency: 'USD',
-            notes: 'Thank you for your business!',
-            terms: 'Payment due within 30 days',
-            sentAt: new Date('2025-09-15'),
-            viewedAt: new Date('2025-09-16')
-        },
-        {
-            invoiceNumber: 'INV-2025-0002',
-            status: 'sent',
-            senderId: user2.id,
-            recipientId: user3.id,
-            issueDate: new Date('2025-09-20'),
-            dueDate: new Date('2025-10-20'),
-            subtotal: '3200.00',
-            taxTotal: '320.00',
-            discountAmount: '200.00',
-            totalAmount: '3320.00',
-            currency: 'USD',
-            notes: 'Design services for Q3 2025',
-            terms: 'Net 30',
-            sentAt: new Date('2025-09-20'),
-            viewedAt: new Date('2025-09-21')
-        },
-        {
-            invoiceNumber: 'INV-2025-0003',
-            status: 'overdue',
-            senderId: user3.id,
-            recipientId: user4.id,
-            issueDate: new Date('2025-08-15'),
-            dueDate: new Date('2025-09-15'),
-            subtotal: '8500.00',
-            taxTotal: '850.00',
-            discountAmount: '0.00',
-            totalAmount: '9350.00',
-            currency: 'USD',
-            notes: 'Consulting services - August 2025',
-            terms: 'Payment due within 30 days',
-            sentAt: new Date('2025-08-15'),
-            viewedAt: new Date('2025-08-16')
-        },
-        {
-            invoiceNumber: 'INV-2025-0004',
-            status: 'draft',
-            senderId: user4.id,
-            recipientId: user1.id,
-            issueDate: new Date('2025-10-01'),
-            dueDate: new Date('2025-11-01'),
-            subtotal: '4200.00',
-            taxTotal: '420.00',
-            discountAmount: '100.00',
-            totalAmount: '4520.00',
-            currency: 'USD',
-            notes: 'Marketing campaign services',
-            terms: 'Net 30'
-        },
-        {
-            invoiceNumber: 'INV-2025-0005',
-            status: 'paid',
-            senderId: user1.id,
-            recipientId: user3.id,
-            issueDate: new Date('2025-09-01'),
-            dueDate: new Date('2025-10-01'),
-            paidDate: new Date('2025-09-28'),
-            subtotal: '12000.00',
-            taxTotal: '1200.00',
-            discountAmount: '500.00',
-            totalAmount: '12700.00',
-            currency: 'USD',
-            notes: 'Software development - Phase 1',
-            terms: 'Net 30',
-            sentAt: new Date('2025-09-01'),
-            viewedAt: new Date('2025-09-02')
-        }
-    ]).returning();
-
-    console.log('✅ Invoices seeded');
-
-    // Seed Invoice Items
-    await db.insert(invoiceItems).values([
-        // Invoice 1 items
-        {
-            invoiceId: invoice1.id,
-            description: 'Web Development Services',
-            quantity: '80',
-            unitType: 'hours',
-            unitPrice: '50.00',
-            taxRate: '0.10',
-            subtotal: '4000.00',
-            taxAmount: '400.00',
-            total: '4400.00'
-        },
-        {
-            invoiceId: invoice1.id,
-            description: 'Project Management',
-            quantity: '20',
-            unitType: 'hours',
-            unitPrice: '50.00',
-            taxRate: '0.10',
-            subtotal: '1000.00',
-            taxAmount: '100.00',
-            total: '1100.00'
-        },
-        // Invoice 2 items
-        {
-            invoiceId: invoice2.id,
-            description: 'Logo Design',
-            quantity: '1',
-            unitType: 'piece',
-            unitPrice: '1500.00',
-            taxRate: '0.10',
-            subtotal: '1500.00',
-            taxAmount: '150.00',
-            total: '1650.00'
-        },
-        {
-            invoiceId: invoice2.id,
-            description: 'Brand Guidelines Document',
-            quantity: '1',
-            unitType: 'piece',
-            unitPrice: '1000.00',
-            taxRate: '0.10',
-            subtotal: '1000.00',
-            taxAmount: '100.00',
-            total: '1100.00'
-        },
-        {
-            invoiceId: invoice2.id,
-            description: 'Marketing Materials Design',
-            quantity: '10',
-            unitType: 'hours',
-            unitPrice: '70.00',
-            taxRate: '0.10',
-            subtotal: '700.00',
-            taxAmount: '70.00',
-            total: '770.00'
-        },
-        // Invoice 3 items
-        {
-            invoiceId: invoice3.id,
-            description: 'Business Strategy Consulting',
-            quantity: '40',
-            unitType: 'hours',
-            unitPrice: '150.00',
-            taxRate: '0.10',
-            subtotal: '6000.00',
-            taxAmount: '600.00',
-            total: '6600.00'
-        },
-        {
-            invoiceId: invoice3.id,
-            description: 'Market Research Report',
-            quantity: '1',
-            unitType: 'piece',
-            unitPrice: '2500.00',
-            taxRate: '0.10',
-            subtotal: '2500.00',
-            taxAmount: '250.00',
-            total: '2750.00'
-        },
-        // Invoice 4 items
-        {
-            invoiceId: invoice4.id,
-            description: 'Social Media Campaign Management',
-            quantity: '3',
-            unitType: 'months',
-            unitPrice: '1200.00',
-            taxRate: '0.10',
-            subtotal: '3600.00',
-            taxAmount: '360.00',
-            total: '3960.00'
-        },
-        {
-            invoiceId: invoice4.id,
-            description: 'Content Creation',
-            quantity: '20',
-            unitType: 'posts',
-            unitPrice: '30.00',
-            taxRate: '0.10',
-            subtotal: '600.00',
-            taxAmount: '60.00',
-            total: '660.00'
-        },
-        // Invoice 5 items
-        {
-            invoiceId: invoice5.id,
-            description: 'Custom Software Development',
-            quantity: '150',
-            unitType: 'hours',
-            unitPrice: '75.00',
-            taxRate: '0.10',
-            subtotal: '11250.00',
-            taxAmount: '1125.00',
-            total: '12375.00'
-        },
-        {
-            invoiceId: invoice5.id,
-            description: 'Software Testing',
-            quantity: '10',
-            unitType: 'hours',
-            unitPrice: '75.00',
-            taxRate: '0.10',
-            subtotal: '750.00',
-            taxAmount: '75.00',
-            total: '825.00'
-        }
-    ]);
-
-    console.log('✅ Invoice items seeded');
-
-    // Seed Payments
-    const [payment1, payment2] = await db.insert(payments).values([
-        {
-            invoiceId: invoice1.id,
-            payerId: user2.id,
-            amount: '5500.00',
-            currency: 'USD',
-            paymentMethod: 'credit_card',
-            status: 'completed',
-            transactionId: 'ch_1ABC123456789',
-            paymentDate: new Date('2025-10-10')
-        },
-        {
-            invoiceId: invoice5.id,
-            payerId: user3.id,
-            amount: '12700.00',
-            currency: 'USD',
-            paymentMethod: 'bank_account',
-            status: 'completed',
-            transactionId: 'ach_9XYZ987654321',
-            paymentDate: new Date('2025-09-28')
-        }
-    ]).returning();
-
-    console.log('✅ Payments seeded');
-
-    // Seed Notifications
-    await db.insert(notifications).values([
-        {
-            userId: user2.id,
-            invoiceId: invoice1.id,
-            type: 'invoice_sent',
-            message: 'You received invoice INV-2025-0001 from TechCorp Solutions',
-            isRead: true
-        },
-        {
-            userId: user1.id,
-            invoiceId: invoice1.id,
-            type: 'payment_received',
-            message: 'Payment received for invoice INV-2025-0001',
-            isRead: true
-        },
-        {
-            userId: user3.id,
-            invoiceId: invoice2.id,
-            type: 'invoice_sent',
-            message: 'You received invoice INV-2025-0002 from Creative Design Studio',
-            isRead: true
-        },
-        {
-            userId: user4.id,
-            invoiceId: invoice3.id,
-            type: 'invoice_overdue',
-            message: 'Invoice INV-2025-0003 is overdue',
-            isRead: false
-        },
-        {
-            userId: user3.id,
-            invoiceId: invoice3.id,
-            type: 'reminder',
-            message: 'Reminder: Invoice INV-2025-0003 payment is overdue',
-            isRead: false
-        },
-        {
-            userId: user3.id,
-            invoiceId: invoice5.id,
-            type: 'invoice_sent',
-            message: 'You received invoice INV-2025-0005 from TechCorp Solutions',
-            isRead: true
-        },
-        {
-            userId: user1.id,
-            invoiceId: invoice5.id,
-            type: 'payment_received',
-            message: 'Payment received for invoice INV-2025-0005',
-            isRead: true
-        }
-    ]);
-
-    console.log('✅ Notifications seeded');
-
-    console.log('🎉 Seed completed successfully!');
+    await createInvoices(newCompanies, newContacts, newPaymentMethods)
 }
 
 // Run the seed

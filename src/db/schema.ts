@@ -1,5 +1,5 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, integer, boolean, jsonb, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { pgTable, uuid, varchar, text, timestamp, decimal, integer, boolean, jsonb, pgEnum, unique } from 'drizzle-orm/pg-core';
 
 // Enums
 export const invoiceStatusEnum = pgEnum('invoice_status', [
@@ -22,7 +22,8 @@ export const paymentMethodTypeEnum = pgEnum('payment_method_type', [
     'credit_card',
     'bank_account',
     'paypal',
-    'stripe'
+    'stripe',
+    'cash'
 ]);
 
 export const notificationTypeEnum = pgEnum('notification_type', [
@@ -33,33 +34,119 @@ export const notificationTypeEnum = pgEnum('notification_type', [
     'reminder'
 ]);
 
+export const contactTypeEnum = pgEnum('contact_type', [
+    'client',
+    'vendor'
+]);
+
+export const userTypeEnum = pgEnum('user_type', [
+    'individual',
+    'freelancer',
+    'business'
+]);
+
+export const sourceTypeEnum = pgEnum('source_type', [
+    'manual',
+    'csv',
+    'excel'
+]);
+
+export const directionTypeEnum = pgEnum('direction_type', [
+    'outgoing',
+    'incoming',
+]);
+
+export type AddressType = {
+    street: string;
+    street2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+}
+
 // Users Table
-export const users = pgTable('users', {
+export const users = pgTable("users", {
+    id: text("id").primaryKey(), // NextAuth compatible
+    name: varchar("name", { length: 255 }),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    role: varchar("role", { length: 50 }).default("user").notNull(),
+    userType: userTypeEnum("type").default("individual").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+
+// Companies Table
+export const companies = pgTable('companies', {
     id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text("owner_id").references(() => users.id, { onDelete: "cascade" }),
+
+    // Basic Contact Information
     email: varchar('email', { length: 255 }).notNull().unique(),
     name: varchar('name', { length: 255 }).notNull(),
-    companyName: varchar('company_name', { length: 255 }),
     phone: varchar('phone', { length: 50 }),
-    address: jsonb('address').$type<{
-        street: string;
-        city: string;
-        state: string;
-        postalCode: string;
-        country: string;
-    }>(),
+    mobilePhone: varchar('mobile_phone', { length: 50 }),
+    website: varchar('website', { length: 255 }),
+
+    // Company Information
+    companyRegistrationNumber: varchar('company_registration_number', { length: 100 }),
     taxId: varchar('tax_id', { length: 100 }),
+    vatNumber: varchar('vat_number', { length: 100 }),
+
+    // Address Information
+    address: jsonb('address').$type<AddressType>(),
+
+    // Billing Address (if different from main address)
+    billingAddress: jsonb('billing_address').$type<AddressType>(),
+
+    // Additional Information
+    industry: varchar('industry', { length: 100 }),
+    companySize: varchar('company_size', { length: 50 }), // e.g., "1-10", "11-50", "51-200"
+    notes: text('notes'),
+
+    // Metadata
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Contacts Table
+export const contacts = pgTable('contacts', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+    email: varchar('email', { length: 255 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    phone: varchar('phone', { length: 50 }),
+    mobilePhone: varchar('mobile_phone', { length: 50 }),
+    contactType: contactTypeEnum("contact_type").notNull(),
+    isRegisteredUser: boolean("is_registered_user").default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ([
+    unique("company_email_type_unique").on(
+        table.companyId,
+        table.email,
+        table.contactType,
+    ),
+]),
+);
+
 // Invoices Table
 export const invoices = pgTable('invoices', {
     id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+
+    senderId: uuid("sender_id").references(() => contacts.id, {
+        onDelete: "set null",
+    }),
+
+    recipientId: uuid("recipient_id").references(() => contacts.id, {
+        onDelete: "set null",
+    }),
+
     invoiceNumber: varchar('invoice_number', { length: 100 }).notNull().unique(),
     status: invoiceStatusEnum('status').default('draft').notNull(),
-
-    senderId: uuid('sender_id').notNull().references(() => users.id),
-    recipientId: uuid('recipient_id').notNull().references(() => users.id),
+    direction: directionTypeEnum("direction").default("outgoing").notNull(),
 
     issueDate: timestamp('issue_date').notNull(),
     dueDate: timestamp('due_date').notNull(),
@@ -73,6 +160,8 @@ export const invoices = pgTable('invoices', {
     currency: varchar('currency', { length: 3 }).default('USD').notNull(),
     notes: text('notes'),
     terms: text('terms'),
+    source: sourceTypeEnum("source").notNull().default('manual'),
+    externalId: varchar("external_id", { length: 100 }),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -101,7 +190,7 @@ export const invoiceItems = pgTable('invoice_items', {
 // Payment Methods Table
 export const paymentMethods = pgTable('payment_methods', {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     type: paymentMethodTypeEnum('type').notNull(),
 
     // Card details
@@ -121,8 +210,10 @@ export const paymentMethods = pgTable('payment_methods', {
 // Payments Table
 export const payments = pgTable('payments', {
     id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
-    payerId: uuid('payer_id').notNull().references(() => users.id),
+    payerId: uuid('payer_id').references(() => contacts.id),
+    payerName: varchar('payer_name', { length: 255 }),
 
     amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
     currency: varchar('currency', { length: 3 }).notNull(),
@@ -139,7 +230,7 @@ export const payments = pgTable('payments', {
 // Notifications Table
 export const notifications = pgTable('notifications', {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     invoiceId: uuid('invoice_id').references(() => invoices.id, { onDelete: 'cascade' }),
 
     type: notificationTypeEnum('type').notNull(),
@@ -150,67 +241,80 @@ export const notifications = pgTable('notifications', {
 });
 
 // Relations
+
+// Users
 export const usersRelations = relations(users, ({ many }) => ({
-    sentInvoices: many(invoices, { relationName: 'sender' }),
-    receivedInvoices: many(invoices, { relationName: 'recipient' }),
-    paymentMethods: many(paymentMethods),
+    companies: many(companies),
+}));
+
+// Companies
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+    owner: one(users, { fields: [companies.ownerId], references: [users.id] }),
+    contacts: many(contacts),
+    invoices: many(invoices),
     payments: many(payments),
+    paymentMethods: many(paymentMethods),
     notifications: many(notifications),
 }));
 
+// Contacts
+export const contactsRelations = relations(contacts, ({ one, many }) => ({
+    company: one(companies, { fields: [contacts.companyId], references: [companies.id] }),
+    sentInvoices: many(invoices),
+    receivedInvoices: many(invoices),
+    payments: many(payments),
+}));
+
+// Invoices
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
-    sender: one(users, {
-        fields: [invoices.senderId],
-        references: [users.id],
-        relationName: 'sender',
-    }),
-    recipient: one(users, {
-        fields: [invoices.recipientId],
-        references: [users.id],
-        relationName: 'recipient',
-    }),
+    company: one(companies, { fields: [invoices.companyId], references: [companies.id] }),
+    sender: one(contacts, { fields: [invoices.senderId], references: [contacts.id] }),
+    recipient: one(contacts, { fields: [invoices.recipientId], references: [contacts.id] }),
     items: many(invoiceItems),
     payments: many(payments),
     notifications: many(notifications),
 }));
 
+// Invoice Items
 export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
-    invoice: one(invoices, {
-        fields: [invoiceItems.invoiceId],
-        references: [invoices.id],
-    }),
+    invoice: one(invoices, { fields: [invoiceItems.invoiceId], references: [invoices.id] }),
 }));
 
-export const paymentMethodsRelations = relations(paymentMethods, ({ one, many }) => ({
-    user: one(users, {
-        fields: [paymentMethods.userId],
-        references: [users.id],
-    }),
-    payments: many(payments),
-}));
-
+// Payments
 export const paymentsRelations = relations(payments, ({ one }) => ({
-    invoice: one(invoices, {
-        fields: [payments.invoiceId],
-        references: [invoices.id],
-    }),
-    payer: one(users, {
-        fields: [payments.payerId],
-        references: [users.id],
-    }),
-    paymentMethod: one(paymentMethods, {
-        fields: [payments.paymentMethodId],
-        references: [paymentMethods.id],
-    }),
+    company: one(companies, { fields: [payments.companyId], references: [companies.id] }),
+    invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
+    payer: one(contacts, { fields: [payments.payerId], references: [contacts.id] }),
+    paymentMethod: one(paymentMethods, { fields: [payments.paymentMethodId], references: [paymentMethods.id] }),
 }));
 
+// Notifications
 export const notificationsRelations = relations(notifications, ({ one }) => ({
-    user: one(users, {
-        fields: [notifications.userId],
-        references: [users.id],
-    }),
-    invoice: one(invoices, {
-        fields: [notifications.invoiceId],
-        references: [invoices.id],
-    }),
+    company: one(companies, { fields: [notifications.companyId], references: [companies.id] }),
+    invoice: one(invoices, { fields: [notifications.invoiceId], references: [invoices.id] }),
 }));
+
+// Types
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
+
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
+
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
+
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type NewPaymentMethod = typeof paymentMethods.$inferInsert;
+
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;
+
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;

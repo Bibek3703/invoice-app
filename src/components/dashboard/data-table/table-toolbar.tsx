@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { IconChevronDown, IconLayoutColumns, IconSearch } from '@tabler/icons-react'
+import { InputGroup, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
+import { IconChevronDown, IconLayoutColumns, IconSearch, IconX } from '@tabler/icons-react'
 import { Table } from '@tanstack/react-table'
 import React from 'react'
 
@@ -23,12 +24,24 @@ function TableToolbar<TData extends & { id: string }>({
     return (
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
             <div className="flex-1 flex items-center justify-between">
-                <Input
-                    placeholder={searchPlaceholder}
-                    value={globalFilter ?? ""}
-                    onChange={(event) => setGlobalFilter(event.target.value)}
-                    className="min-w-max focus-visible:ring-0"
-                />
+                <InputGroup>
+                    <InputGroupInput
+                        placeholder={searchPlaceholder}
+                        value={globalFilter ?? ""}
+                        onChange={(event) => setGlobalFilter(event.target.value)}
+                        className="min-w-max focus-visible:ring-0"
+                    />
+                    {globalFilter && <InputGroupButton
+                        aria-label="Clear"
+                        title="Clear"
+                        size="icon-xs"
+                        onClick={() => {
+                            setGlobalFilter("")
+                        }}
+                    >
+                        <IconX />
+                    </InputGroupButton>}
+                </InputGroup>
                 <Button
                     type="submit"
                     variant="outline"

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { companies, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function getUsers() {
@@ -20,9 +20,6 @@ export async function getUserById(userId: string) {
     try {
         const result = await db.query.users.findFirst({
             where: eq(users.id, userId),
-            with: {
-                paymentMethods: true,
-            },
         });
 
         if (!result) {
@@ -32,5 +29,21 @@ export async function getUserById(userId: string) {
         return { success: true, data: result };
     } catch (error) {
         return { success: false, error: 'Failed to fetch user' };
+    }
+}
+
+export async function getUserCompanies(userId: string) {
+    try {
+        const result = await db.query.companies.findMany({
+            where: eq(companies.ownerId, userId),
+        });
+
+        if (!result) {
+            return { success: false, error: 'Companies not found' };
+        }
+
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: 'Failed to fetch user companies' };
     }
 }

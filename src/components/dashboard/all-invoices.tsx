@@ -1,6 +1,5 @@
 "use client"
 
-import { useInvoices } from '@/hooks/use-invoices';
 import React from 'react'
 import DataTable from './data-table';
 import { allInvoiceSchema, allInvoiceColumns } from './columns';
@@ -8,10 +7,11 @@ import z from 'zod';
 import { Button } from '../ui/button';
 import TableToolbar from './data-table/table-toolbar';
 import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
-import { IconPlus } from '@tabler/icons-react';
 import StatusFilter from './status-filter';
+import InvoiceDialog from './invoice-dialog';
+import { useAllInvoices } from '@/hooks/use-invoices';
 
-function Invoices({ userId }: { userId: string }) {
+function Invoices({ userId, companyId }: { userId: string, companyId: string }) {
     const [pagination, setPagination] = React.useState({
         pageIndex: 0,
         pageSize: 10,
@@ -21,11 +21,10 @@ function Invoices({ userId }: { userId: string }) {
     const [globalFilter, setGlobalFilter] = React.useState("")
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const { data: invoices, isLoading, isFetching } = useInvoices(userId, {
+    const { data: invoices, isLoading, isFetching } = useAllInvoices(companyId, {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        status: "all",
-        type: "all",
+        columns: ["companyName", "recipientName", "totalAmount", "senderName", "invoiceNumber"],
         search: searchQuery,
     });
 
@@ -37,10 +36,7 @@ function Invoices({ userId }: { userId: string }) {
             searchPlaceholder='Filter invoice number, recipient name, company name, total amount...'
             onSearch={(value) => setSearchQuery(value)}
             extraActions={(table) => <>
-                <Button variant="outline" size="sm" onClick={() => { }}>
-                    <IconPlus />
-                    <span className="hidden lg:inline">Create Invoice</span>
-                </Button>
+                <InvoiceDialog />
                 <StatusFilter table={table} />
             </>}
         />
@@ -62,7 +58,7 @@ function Invoices({ userId }: { userId: string }) {
         <div className='flex-1 h-full w-full'>
             <DataTable
                 data={invoices?.data as unknown as z.infer<typeof allInvoiceSchema>[] ?? []}
-                rowCount={invoices?.pagination?.total}
+                rowCount={invoices?.pagination?.totalItems}
                 columns={allInvoiceColumns}
                 pagination={pagination}
                 setPagination={setPagination}

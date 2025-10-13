@@ -1,6 +1,6 @@
 "use client"
 
-import { useInvoices } from '@/hooks/use-invoices';
+import { useReceivedInvoices } from '@/hooks/use-invoices';
 import React from 'react'
 import DataTable from './data-table';
 import { receivedInvoiceSchema, receivedInvoiceColumns } from './columns';
@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
 import StatusFilter from './status-filter';
 
-function ReceivedInvoices({ userId }: { userId: string }) {
+function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: string }) {
     const [pagination, setPagination] = React.useState({
         pageIndex: 0,
         pageSize: 10,
@@ -20,11 +20,10 @@ function ReceivedInvoices({ userId }: { userId: string }) {
     const [globalFilter, setGlobalFilter] = React.useState("")
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const { data: invoices, isLoading, isFetching } = useInvoices(userId, {
+    const { data: invoices, isLoading, isFetching } = useReceivedInvoices(companyId, {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        status: "all",
-        type: "received",
+        columns: ["companyName", "totalAmount", "senderName", "invoiceNumber"],
         search: searchQuery,
     });
 
@@ -55,11 +54,13 @@ function ReceivedInvoices({ userId }: { userId: string }) {
             companyName.includes(search)
     }
 
+    console.log({ invoices })
+
     return (
         <div className='w-full flex-col justify-start gap-6'>
             <DataTable
                 data={invoices?.data as unknown as z.infer<typeof receivedInvoiceSchema>[] ?? []}
-                rowCount={invoices?.pagination?.total}
+                rowCount={invoices?.pagination?.totalItems}
                 columns={receivedInvoiceColumns}
                 pagination={pagination}
                 setPagination={setPagination}

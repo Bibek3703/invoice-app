@@ -2,11 +2,17 @@ import Invoices from '@/components/dashboard/all-invoices';
 import ReceivedInvoices from '@/components/dashboard/received-invoices';
 import SentInvoices from '@/components/dashboard/sent-invoices';
 import Tabs from '@/components/tabs';
+import { getUserCompanies } from '@/lib/actions/users';
 import React from 'react'
 
 async function InvoicesPage() {
-    const userId = '3d4aa90b-657a-4f2b-a874-0cab900fd225'; // For test only TODO: Get from auth
+    const userId = '1c17e1a9-f5fc-4cfd-8d67-940070578e68'; // For test only TODO: Get from auth
 
+    const companies = await getUserCompanies(userId)
+
+    if (!companies?.data || (companies?.data && companies?.data?.length === 0)) {
+        return null // TODO: Display create company button
+    }
 
     return (
         <div className='flex-1 flex flex-col h-full w-full p-4 lg:p-6'>
@@ -19,9 +25,24 @@ async function InvoicesPage() {
             <Tabs
                 defaultValue='received'
                 items={[
-                    { label: "Received Invoices", value: "received", content: <ReceivedInvoices userId={userId} /> },
-                    { label: "Sent Invoices", value: "sent", content: <SentInvoices userId={userId} /> },
-                    { label: "All Invoices", value: "all", content: <Invoices userId={userId} /> },
+                    {
+                        label: "Received Invoices", value: "received", content: <ReceivedInvoices
+                            userId={userId}
+                            companyId={companies?.data[0].id}
+                        />
+                    },
+                    {
+                        label: "Sent Invoices", value: "sent", content: <SentInvoices
+                            userId={userId}
+                            companyId={companies?.data[0].id}
+                        />
+                    },
+                    {
+                        label: "All Invoices", value: "all", content: <Invoices
+                            userId={userId}
+                            companyId={companies?.data[0].id}
+                        />
+                    },
                 ]}
             />
         </div>

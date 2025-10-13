@@ -1,8 +1,9 @@
-export interface FilterOption {
+export interface FilterOption<T> {
     page?: number;
     pageSize?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    columns?: T[] | string[];
     search?: string;
 }
 
@@ -14,8 +15,28 @@ export interface Pagination {
 }
 
 
-export interface PaginatedResult<T> {
+export interface PaginatedResponse<T> {
     success: boolean;
     data?: T[];
-    pagination?: Pagination;
+    pagination?: {
+        page: number;
+        pageSize: number;
+        totalItems: number;
+        totalPages: number;
+    };
+    error?: string;
 }
+
+export type InvoiceDirectionType = "outgoing" | "incoming"
+
+export type InvoiceSearchColumnType = "invoiceNumber"
+    | "notes"
+    | "terms"
+    | "status"
+    | "currency"
+    | "totalAmount"
+    | "companyName"
+    | "senderName"
+    | "recipientName"
+    | "senderEmail"
+    | "recipientEmail"
