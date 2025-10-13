@@ -53,7 +53,7 @@ export const receivedInvoiceColumns: ColumnDef<z.infer<typeof receivedInvoiceSch
         header: 'Invoice #',
     },
     {
-        accessorKey: 'company.name',
+        accessorKey: 'sender.company.name',
         header: 'Company',
         cell: ({ row }) => row.original.sender.company.name || null,
     },

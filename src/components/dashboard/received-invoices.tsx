@@ -45,6 +45,7 @@ function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: st
 
     const onGlobalFilterChange = <TData extends { id: string }>(row: Row<TData>, columnId: string, filterValue: string): boolean => {
         const search = filterValue.toLowerCase()
+        console.log({ columnId })
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const senderName = String(row.getValue("sender_name")).toLowerCase()
         const totalAmount = String(row.getValue("totalAmount"))

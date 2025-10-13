@@ -49,7 +49,7 @@ function SentInvoices({ userId, companyId }: { userId: string, companyId: string
         const search = filterValue.toLowerCase()
         const invoiceNumber = String(row.getValue("invoiceNumber")).toLowerCase()
         const recipientName = String(row.getValue("recipient_name")).toLowerCase()
-        const companyName = String(row.getValue("recipient_companyName")).toLowerCase()
+        const companyName = String(row.getValue("recipient_company_name")).toLowerCase()
         const totalAmount = String(row.getValue("totalAmount"))
         return invoiceNumber.includes(search) ||
             recipientName.includes(search) ||
