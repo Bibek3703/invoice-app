@@ -1,4 +1,4 @@
-import { FileText, Inbox, LayoutDashboard, Send } from "lucide-react";
+import { Building, FileText, Inbox, LayoutDashboard, Send, Users } from "lucide-react";
 
 export const dashboardMenuItems = [
     {
@@ -23,6 +23,21 @@ export const dashboardMenuItems = [
             title: "All Invoices",
             icon: FileText,
             url: "/invoices?tab=all",
+        },
+        ]
+    },
+    {
+        title: "Contacts",
+        icon: Inbox,
+        menus: [{
+            title: "Vendors",
+            icon: Building,
+            url: "/contacts?tab=vendors",
+        },
+        {
+            title: "Clients",
+            icon: Users,
+            url: "/contacts?tab=clients",
         },
         ]
     }

@@ -98,7 +98,7 @@ export async function getReceivedInvoices(companyId: string, filters: FilterOpti
     return fetchInvoices(companyId, filters, "incoming");
 }
 
-// Fetch single invoice by ID (unchanged)
+// Fetch single invoice by ID
 export async function getInvoiceById(companyId: string, invoiceId: string) {
     try {
         const invoice = await db.query.invoices.findFirst({
