@@ -12,9 +12,14 @@ import { IconPlus } from '@tabler/icons-react'
 import { InvoiceForm } from './forms/invoice-form'
 import { ScrollArea } from '../ui/scroll-area'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '../ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '../ui/drawer'
 
-function InvoiceDialog() {
+interface InvoiceDialogPropsType {
+    companyId: string
+    direction?: "outgoing" | "incoming"
+}
+
+function InvoiceDialog({ companyId, direction = "outgoing" }: InvoiceDialogPropsType) {
     const [open, setOpen] = React.useState(false)
     const isMobile = useIsMobile()
 
@@ -36,7 +41,7 @@ function InvoiceDialog() {
                 <div className='flex-1 flex-grow flex flex-col w-full h-full overflow-hidden bg-accent'>
                     <div className='w-full h-full max-h-full overflow-y-auto'>
                         <div className="flex h-auto flex-col p-4 gap-6">
-                            <InvoiceForm />
+                            <InvoiceForm companyId={companyId} direction={direction} />
                             <div className='w-full min-h-[200px] bg-red-500'>
                                 sdf
                             </div>
@@ -65,7 +70,7 @@ function InvoiceDialog() {
                 </DialogHeader>
                 <div className='flex-1 flex flex-col lg:flex-row w-full lg:max-h-full lg:overflow-hidden'>
                     <ScrollArea className='w-full pr-6 py-3'>
-                        <InvoiceForm />
+                        <InvoiceForm companyId={companyId} direction={direction} />
                     </ScrollArea>
                     <div className='w-full h-full bg-muted'></div>
                 </div>

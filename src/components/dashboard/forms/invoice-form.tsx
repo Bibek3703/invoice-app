@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -17,6 +17,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { useClients, useVendors } from "@/hooks/use-contacts"
+import { Combobox, ComboboxItemType } from "@/components/combobox"
+import { PaginatedResponse } from "@/types"
+import { Contact } from "@/db/schema"
+import ClientCombobox from "../client-combobox"
+import VendorCombobox from "../vendor-combobox"
 
 const invoiceItemSchema = z.object({
     description: z.string().min(1, "Description is required"),
@@ -39,29 +45,15 @@ const invoiceFormSchema = z.object({
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
-// Mock recipients data - replace with actual data from your database
-const mockRecipients = [
-    {
-        id: "1",
-        name: "Acme Corp",
-        email: "contact@acme.com"
-    },
-    {
-        id: "2",
-        name: "TechStart Inc",
-        email: "billing@techstart.com"
-    },
-    {
-        id: "3",
-        name: "Global Solutions",
-        email: "accounts@global.com"
-    },
-]
-
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD"]
 const unitTypes = ["hours", "pieces", "kg", "litres", "days", "units"]
 
-export function InvoiceForm() {
+interface InvoicePropsType {
+    companyId: string
+    direction: "outgoing" | "incoming"
+}
+
+export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const form = useForm<InvoiceFormValues>({
@@ -167,22 +159,21 @@ export function InvoiceForm() {
                         name="recipientId"
                         render={({ field }) => (
                             <FormItem className="gap-2 h-full flex flex-col">
-                                <FormLabel>Recipient</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select recipient" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {mockRecipients.map((recipient) => (
-                                            <SelectItem key={recipient.id} value={recipient.id}>
-                                                {recipient.name} ({recipient.email})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
+                                <FormLabel>{direction === "outgoing" ? "Client" : "Vendor"}</FormLabel>
+                                {direction === "outgoing" ?
+                                    <ClientCombobox
+                                        value={field.value}
+                                        companyId={companyId}
+                                        onSelect={(val) => form.setValue("recipientId", val)}
+                                    />
+                                    : <VendorCombobox
+                                        value={field.value}
+                                        companyId={companyId}
+                                        onSelect={(val) => {
+                                            console.log({ val })
+                                            form.setValue("recipientId", val)
+                                        }}
+                                    />}
                             </FormItem>
                         )}
                     />

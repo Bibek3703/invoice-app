@@ -38,7 +38,7 @@ function SentInvoices({ userId, companyId }: { userId: string, companyId: string
                 searchPlaceholder='Filter invoice number, recipient name, recipient company name, total amount...'
                 onSearch={(value) => setSearchQuery(value)}
                 extraActions={(table) => <>
-                    <InvoiceDialog />
+                    <InvoiceDialog companyId={companyId} direction="outgoing" />
                     <StatusFilter table={table} />
                 </>}
             />

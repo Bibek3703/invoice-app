@@ -51,6 +51,8 @@ export async function fetchContacts(
             offset,
         });
 
+        console.log({ contactList, page, pageSize, type })
+
         return {
             success: true,
             data: contactList,

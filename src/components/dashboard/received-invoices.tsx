@@ -9,6 +9,7 @@ import TableToolbar from './data-table/table-toolbar';
 import { Button } from '../ui/button';
 import { ColumnFiltersState, Row, Table } from '@tanstack/react-table';
 import StatusFilter from './status-filter';
+import InvoiceDialog from './invoice-dialog';
 
 function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: string }) {
     const [pagination, setPagination] = React.useState({
@@ -36,6 +37,7 @@ function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: st
             searchPlaceholder='Filter invoice number, recipient name, company name, total amount...'
             onSearch={(value) => setSearchQuery(value)}
             extraActions={(table) => <>
+                <InvoiceDialog companyId={companyId} direction="incoming" />
                 <StatusFilter table={table} />
             </>}
         />
@@ -54,7 +56,6 @@ function ReceivedInvoices({ userId, companyId }: { userId: string, companyId: st
             companyName.includes(search)
     }
 
-    console.log({ invoices })
 
     return (
         <div className='w-full flex-col justify-start gap-6'>
