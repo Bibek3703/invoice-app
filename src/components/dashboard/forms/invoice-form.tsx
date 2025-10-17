@@ -17,12 +17,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useClients, useVendors } from "@/hooks/use-contacts"
-import { Combobox, ComboboxItemType } from "@/components/combobox"
-import { PaginatedResponse } from "@/types"
-import { Contact } from "@/db/schema"
 import ClientCombobox from "../client-combobox"
 import VendorCombobox from "../vendor-combobox"
+import UploadSelector from "@/components/upload-selector"
 
 const invoiceItemSchema = z.object({
     description: z.string().min(1, "Description is required"),
@@ -425,6 +422,12 @@ export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
                 </div>
 
                 <Separator />
+                <FormItem className="gap-2 h-full flex flex-col px-1">
+                    <FormLabel>Attachment</FormLabel>
+                    <UploadSelector />
+                </FormItem>
+
+                <Separator />
 
                 <Label>Additional Information</Label>
 
@@ -456,9 +459,7 @@ export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
                     )}
                 />
 
-                <Separator />
-
-                <div className="flex justify-end gap-4">
+                <div className="flex justify-end gap-4 pt-8">
                     <Button type="button" variant="outline" onClick={() => form.reset()} disabled={isSubmitting}>
                         Reset
                     </Button>
