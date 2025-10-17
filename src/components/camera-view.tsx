@@ -5,9 +5,9 @@ import {
     Camera,
     CameraOff,
     ChevronDownIcon,
+    Download,
     RefreshCcw,
     Square,
-    Upload,
 } from "lucide-react";
 import React from "react";
 import { Button } from "./ui/button";
@@ -24,7 +24,10 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-function CameraView({ closeCamera }: { closeCamera?: boolean }) {
+function CameraView({
+    closeCamera,
+    onUsePhoto = () => { }
+}: { closeCamera?: boolean, onUsePhoto?: (data: string) => void }) {
     const [cameraAccessDenied, setCameraAccessDenied] = React.useState(false);
     const [cameraAccessRequired, setCameraAccessRequired] = React.useState(false);
     const [error, setError] = React.useState("");
@@ -184,7 +187,6 @@ function CameraView({ closeCamera }: { closeCamera?: boolean }) {
                         <li>• Your device camera (if supported)</li>
                         <li>• Live camera feed for preview</li>
                         <li>• Ability to capture invoice images</li>
-                        <li>• File upload as fallback</li>
                     </ul>
                 </div>
 
@@ -316,11 +318,15 @@ function CameraView({ closeCamera }: { closeCamera?: boolean }) {
                 <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => { }}
+                    onClick={() => {
+                        if (capturedImage) {
+                            onUsePhoto(capturedImage)
+                        }
+                    }}
                     disabled={!capturedImage}
                 >
-                    <Upload />
-                    <span className="hidden md:block">Upload</span>
+                    <Download />
+                    <span className="hidden md:block">Use Photo</span>
                 </Button>
                 <ButtonGroupSeparator />
                 <Button

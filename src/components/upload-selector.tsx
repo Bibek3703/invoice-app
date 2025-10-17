@@ -21,6 +21,7 @@ import CameraView from "./camera-view"
 export default function UploadSelector() {
     const [fileUploadOpen, setFileUploadOpen] = React.useState(false)
     const [takePhotoOpen, setTakePhotoOpen] = React.useState(false)
+    const [open, setOpen] = React.useState(false)
     const [files, setFiles] = React.useState<File[]>([]);
 
     const handleFileUpload = (files: File[]) => {
@@ -34,9 +35,9 @@ export default function UploadSelector() {
         <>
             <div className="grid w-full gap-4">
                 <InputGroup>
-                    <InputGroupInput placeholder="Upload..." readOnly />
+                    <InputGroupInput placeholder="Upload..." readOnly onClick={() => setOpen(!open)} />
                     <InputGroupAddon align="inline-end">
-                        <DropdownMenu>
+                        <DropdownMenu open={open} onOpenChange={setOpen}>
                             <DropdownMenuTrigger asChild>
                                 <InputGroupButton
                                     variant="ghost"
@@ -96,7 +97,13 @@ export default function UploadSelector() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 w-full h-full max-h-full overflow-y-auto max-w-[100svw] px-4">
-                        <CameraView closeCamera={!takePhotoOpen} />
+                        <CameraView
+                            closeCamera={!takePhotoOpen}
+                            onUsePhoto={(data) => {
+                                console.log({ data })
+                                setTakePhotoOpen(false)
+                            }}
+                        />
                     </div>
                 </DialogContent>
             </Dialog>
