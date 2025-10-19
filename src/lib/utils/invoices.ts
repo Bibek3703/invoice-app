@@ -1,3 +1,4 @@
+import { InvoiceItemValues } from "@/components/dashboard/forms/invoice-form";
 import { companies, contacts, invoices } from "@/db/schema";
 import { asc, desc, ilike, or, sql } from "drizzle-orm";
 
@@ -67,4 +68,31 @@ export function getSortOrder(sortBy: string, sortOrder: "asc" | "desc") {
     }[sortBy] || invoices.createdAt;
 
     return sortOrder === "asc" ? asc(column) : desc(column);
+}
+
+export const calculateInvoiceItemTotal = (item: InvoiceItemValues) => {
+    const quantity = Number.parseFloat(item.quantity) || 0
+    const unitPrice = Number.parseFloat(item.unitPrice) || 0
+    const taxRate = Number.parseFloat(item.taxRate) || 0
+
+    const subtotal = quantity * unitPrice
+    const taxAmount = subtotal * taxRate
+    const total = subtotal + taxAmount
+
+    return { subtotal, taxAmount, total }
+}
+
+export const calculateInvoiceTotals = (items: InvoiceItemValues[]) => {
+    let subtotal = 0
+    let taxTotal = 0
+
+    items.forEach((item) => {
+        const { subtotal: itemSubtotal, taxAmount } = calculateInvoiceItemTotal(item)
+        subtotal += itemSubtotal
+        taxTotal += taxAmount
+    })
+
+    const total = subtotal + taxTotal
+
+    return { subtotal, taxTotal, total }
 }

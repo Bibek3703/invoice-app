@@ -9,10 +9,11 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from '../ui/button'
 import { IconPlus } from '@tabler/icons-react'
-import { InvoiceForm } from './forms/invoice-form'
+import { InvoiceForm, InvoiceFormValues } from './forms/invoice-form'
 import { ScrollArea } from '../ui/scroll-area'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '../ui/drawer'
+import InvoiceViewer from '../invoice-viewer'
 
 interface InvoiceDialogPropsType {
     companyId: string
@@ -22,6 +23,8 @@ interface InvoiceDialogPropsType {
 function InvoiceDialog({ companyId, direction = "outgoing" }: InvoiceDialogPropsType) {
     const [open, setOpen] = React.useState(false)
     const isMobile = useIsMobile()
+    const [invoiceValues, setInvoiceValues] = React.useState<InvoiceFormValues | null>(null)
+
 
     if (isMobile) {
         return <Drawer open={open} onOpenChange={setOpen}>
@@ -70,9 +73,19 @@ function InvoiceDialog({ companyId, direction = "outgoing" }: InvoiceDialogProps
                 </DialogHeader>
                 <div className='flex-1 flex flex-col lg:flex-row w-full lg:max-h-full lg:overflow-hidden'>
                     <ScrollArea className='w-full pr-6 py-3'>
-                        <InvoiceForm companyId={companyId} direction={direction} />
+                        <InvoiceForm
+                            companyId={companyId}
+                            direction={direction}
+                            onUpdate={(values) => {
+                                setInvoiceValues(values)
+                            }}
+                        />
                     </ScrollArea>
-                    <div className='w-full h-full bg-muted'></div>
+                    <div className='w-full h-full bg-muted overflow-y-auto box-border'>
+                        {invoiceValues &&
+                            <InvoiceViewer invoiceData={invoiceValues} />
+                        }
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

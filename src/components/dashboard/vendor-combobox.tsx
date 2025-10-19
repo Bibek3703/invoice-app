@@ -1,7 +1,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { Combobox, ComboboxItemType } from '../combobox'
-import { Contact } from '@/db/schema'
+import { Company, Contact } from '@/db/schema'
 import { useVendors } from '@/hooks/use-contacts'
 
 function VendorCombobox({
@@ -11,7 +11,7 @@ function VendorCombobox({
 }: {
     value: string,
     companyId: string,
-    onSelect?: (value: string) => void
+    onSelect?: (data?: Contact & { company: Company } | null) => void
 }) {
     const [search, setSearch] = useState("")
     const { data: vendors } = useVendors(companyId, {
@@ -58,7 +58,10 @@ function VendorCombobox({
             onSearch={(val) => {
                 setSearch(val)
             }}
-            onSelect={onSelect}
+            onSelect={(val) => {
+                const data = vendors?.data && vendors.data.find((item) => item.id === val) as Contact & { company: Company }
+                onSelect(data)
+            }}
         />
     )
 }

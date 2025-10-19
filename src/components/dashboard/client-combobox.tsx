@@ -1,7 +1,7 @@
 import { useClients } from '@/hooks/use-contacts'
 import React, { useCallback, useEffect, useState } from 'react'
 import { Combobox, ComboboxItemType } from '../combobox'
-import { Contact } from '@/db/schema'
+import { Company, Contact } from '@/db/schema'
 
 function ClientCombobox({
     value = "",
@@ -10,7 +10,7 @@ function ClientCombobox({
 }: {
     value: string,
     companyId: string,
-    onSelect?: (value: string) => void
+    onSelect?: (data?: Contact & { company: Company } | null) => void
 }) {
     const [search, setSearch] = useState("")
     const { data: clients } = useClients(companyId, {
@@ -57,7 +57,10 @@ function ClientCombobox({
             onSearch={(val) => {
                 setSearch(val)
             }}
-            onSelect={onSelect}
+            onSelect={(val) => {
+                const data = clients?.data && clients.data.find((item) => item.id === val) as Contact & { company: Company }
+                onSelect(data)
+            }}
         />
     )
 }

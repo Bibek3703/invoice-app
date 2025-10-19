@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useEffect, useState } from "react"
+import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { CalendarIcon, Plus, Trash2 } from "lucide-react"
@@ -20,6 +20,9 @@ import { Separator } from "@/components/ui/separator"
 import ClientCombobox from "../client-combobox"
 import VendorCombobox from "../vendor-combobox"
 import UploadSelector from "@/components/upload-selector"
+import { Company, Contact } from "@/db/schema"
+import { calculateInvoiceItemTotal, calculateInvoiceTotals } from "@/lib/utils/invoices"
+import { faker } from "@faker-js/faker"
 
 const invoiceItemSchema = z.object({
     description: z.string().min(1, "Description is required"),
@@ -30,7 +33,10 @@ const invoiceItemSchema = z.object({
 })
 
 const invoiceFormSchema = z.object({
-    recipientId: z.string().min(1, "Recipient is required"),
+    recipient: z.custom<Contact & { company: Company }>()
+        .refine((val) => !!val, { message: "Recipient is required" }),
+    sender: z.custom<Contact & { company: Company }>()
+        .refine((val) => !!val, { message: "Sender is required" }),
     invoiceNumber: z.string().min(1, "Invoice number is required"),
     issueDate: z.date("Issue date is required"),
     dueDate: z.date("Due date is required"),
@@ -40,7 +46,8 @@ const invoiceFormSchema = z.object({
     terms: z.string().optional(),
 })
 
-type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
+export type InvoiceItemValues = z.infer<typeof invoiceItemSchema>
+export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
 const currencies = ["USD", "EUR", "GBP", "CAD", "AUD"]
 const unitTypes = ["hours", "pieces", "kg", "litres", "days", "units"]
@@ -48,32 +55,56 @@ const unitTypes = ["hours", "pieces", "kg", "litres", "days", "units"]
 interface InvoicePropsType {
     companyId: string
     direction: "outgoing" | "incoming"
+    onUpdate?: (data: InvoiceFormValues) => void
 }
 
-export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
+export function InvoiceForm({
+    companyId,
+    direction,
+    onUpdate = () => { }
+}: InvoicePropsType) {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const form = useForm<InvoiceFormValues>({
         resolver: zodResolver(invoiceFormSchema),
         defaultValues: {
-            recipientId: "",
+            recipient: direction === "incoming" ? {
+                name: faker.person.fullName(),
+                email: faker.internet.email(),
+                contactType: 'vendor',
+                isRegisteredUser: faker.datatype.boolean(),
+                phone: faker.phone.number(),
+            } : {},
+            sender: direction === "outgoing" ? {
+                name: faker.person.fullName(),
+                email: faker.internet.email(),
+                contactType: 'vendor',
+                isRegisteredUser: faker.datatype.boolean(),
+                phone: faker.phone.number(),
+            } : {},
             invoiceNumber: `INV-${new Date().getFullYear()}-${new Date().getMonth()}-${new Date().getDate()}-0001`,
             issueDate: new Date(),
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
             currency: "USD",
-            items: [
-                {
-                    description: "",
-                    quantity: "",
-                    unitType: "hours",
-                    unitPrice: "",
-                    taxRate: "0.10",
-                },
-            ],
-            notes: "",
-            terms: "",
+            items: [{
+                description: "",
+                quantity: "",
+                unitType: "hours",
+                unitPrice: "",
+                taxRate: "0.10",
+            }],
+            notes: "The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project.",
+            terms: "The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project.",
         },
     })
+
+    const formData = useWatch({ control: form.control });
+
+
+    useEffect(() => {
+        if (!form.formState.isReady || form.formState.isLoading) return
+        onUpdate(formData as InvoiceFormValues);
+    }, [form, formData, onUpdate]);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -82,34 +113,15 @@ export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
 
     const calculateItemTotal = (index: number) => {
         const item = form.watch(`items.${index}`)
-        const quantity = Number.parseFloat(item.quantity) || 0
-        const unitPrice = Number.parseFloat(item.unitPrice) || 0
-        const taxRate = Number.parseFloat(item.taxRate) || 0
-
-        const subtotal = quantity * unitPrice
-        const taxAmount = subtotal * taxRate
-        const total = subtotal + taxAmount
-
-        return { subtotal, taxAmount, total }
+        return calculateInvoiceItemTotal(item)
     }
 
-    const calculateInvoiceTotals = () => {
+    const calculateTotals = () => {
         const items = form.watch("items")
-        let subtotal = 0
-        let taxTotal = 0
-
-        items.forEach((item, index) => {
-            const { subtotal: itemSubtotal, taxAmount } = calculateItemTotal(index)
-            subtotal += itemSubtotal
-            taxTotal += taxAmount
-        })
-
-        const total = subtotal + taxTotal
-
-        return { subtotal, taxTotal, total }
+        return calculateInvoiceTotals(items)
     }
 
-    const totals = calculateInvoiceTotals()
+    const totals = calculateTotals()
 
     async function onSubmit(data: InvoiceFormValues) {
         setIsSubmitting(true)
@@ -153,22 +165,27 @@ export function InvoiceForm({ companyId, direction }: InvoicePropsType) {
                     />
                     <FormField
                         control={form.control}
-                        name="recipientId"
+                        name="recipient"
                         render={({ field }) => (
                             <FormItem className="gap-2 h-full flex flex-col">
                                 <FormLabel>{direction === "outgoing" ? "Client" : "Vendor"}</FormLabel>
                                 {direction === "outgoing" ?
                                     <ClientCombobox
-                                        value={field.value}
+                                        value={field.value.id}
                                         companyId={companyId}
-                                        onSelect={(val) => form.setValue("recipientId", val)}
+                                        onSelect={(data) => {
+                                            if (data) {
+                                                form.setValue("recipient", data)
+                                            }
+                                        }}
                                     />
                                     : <VendorCombobox
-                                        value={field.value}
+                                        value={field.value.id}
                                         companyId={companyId}
-                                        onSelect={(val) => {
-                                            console.log({ val })
-                                            form.setValue("recipientId", val)
+                                        onSelect={(data) => {
+                                            if (data) {
+                                                form.setValue("sender", data)
+                                            }
                                         }}
                                     />}
                             </FormItem>
