@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
+import { cn, getCurrencySign } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import ClientCombobox from "../client-combobox"
@@ -74,6 +74,22 @@ export function InvoiceForm({
                 contactType: 'vendor',
                 isRegisteredUser: faker.datatype.boolean(),
                 phone: faker.phone.number(),
+                company: {
+                    name: faker.company.name(),
+                    email: faker.internet.email(),
+                    phone: faker.phone.number(),
+                    website: faker.internet.url(),
+                    companyRegistrationNumber: faker.string.uuid(),
+                    taxId: faker.string.uuid(),
+                    vatNumber: faker.string.uuid(),
+                    address: {
+                        street: faker.location.street(),
+                        city: faker.location.city(),
+                        state: faker.location.state(),
+                        postalCode: faker.location.zipCode(),
+                        country: faker.location.country(),
+                    },
+                }
             } : {},
             sender: direction === "outgoing" ? {
                 name: faker.person.fullName(),
@@ -81,18 +97,34 @@ export function InvoiceForm({
                 contactType: 'vendor',
                 isRegisteredUser: faker.datatype.boolean(),
                 phone: faker.phone.number(),
+                company: {
+                    name: faker.company.name(),
+                    email: faker.internet.email(),
+                    phone: faker.phone.number(),
+                    website: faker.internet.url(),
+                    companyRegistrationNumber: faker.string.uuid(),
+                    taxId: faker.string.uuid(),
+                    vatNumber: faker.string.uuid(),
+                    address: {
+                        street: faker.location.street(),
+                        city: faker.location.city(),
+                        state: faker.location.state(),
+                        postalCode: faker.location.zipCode(),
+                        country: faker.location.country(),
+                    },
+                }
             } : {},
             invoiceNumber: `INV-${new Date().getFullYear()}-${new Date().getMonth()}-${new Date().getDate()}-0001`,
             issueDate: new Date(),
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-            currency: "USD",
-            items: [{
+            currency: "EUR",
+            items: Array.from({ length: 1 }).map(() => ({
                 description: "",
                 quantity: "",
                 unitType: "hours",
                 unitPrice: "",
                 taxRate: "0.10",
-            }],
+            })),
             notes: "The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project.",
             terms: "The complete Tailwind color palette in HEX, RGB, HSL, CSS variables, and classes. Ready to copy and paste into your project.",
         },
@@ -120,6 +152,8 @@ export function InvoiceForm({
         const items = form.watch("items")
         return calculateInvoiceTotals(items)
     }
+
+    console.log({ formData })
 
     const totals = calculateTotals()
 
@@ -398,9 +432,9 @@ export function InvoiceForm({
 
                                     <div className="flex items-center justify-between text-sm">
                                         <div className="space-y-1">
-                                            <div className="text-muted-foreground">Subtotal: ${itemTotal.subtotal.toFixed(2)}</div>
-                                            <div className="text-muted-foreground">Tax: ${itemTotal.taxAmount.toFixed(2)}</div>
-                                            <div className="font-medium">Total: ${itemTotal.total.toFixed(2)}</div>
+                                            <div className="text-muted-foreground">Subtotal: {getCurrencySign(form.getValues("currency"))}{itemTotal.subtotal.toFixed(2)}</div>
+                                            <div className="text-muted-foreground">Tax: {getCurrencySign(form.getValues("currency"))}{itemTotal.taxAmount.toFixed(2)}</div>
+                                            <div className="font-medium">Total: {getCurrencySign(form.getValues("currency"))}{itemTotal.total.toFixed(2)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -425,15 +459,15 @@ export function InvoiceForm({
                     <div className="w-full lg:max-w-xs space-y-2 rounded-lg border border-border bg-muted/50 p-4">
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Subtotal:</span>
-                            <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+                            <span className="font-medium">{getCurrencySign(form.getValues("currency"))}{totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Tax Total:</span>
-                            <span className="font-medium">${totals.taxTotal.toFixed(2)}</span>
+                            <span className="font-medium">{getCurrencySign(form.getValues("currency"))}{totals.taxTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                             <span>Total:</span>
-                            <span>${totals.total.toFixed(2)}</span>
+                            <span>{getCurrencySign(form.getValues("currency"))}{totals.total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

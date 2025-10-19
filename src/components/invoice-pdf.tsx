@@ -4,6 +4,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { InvoiceFormValues } from './dashboard/forms/invoice-form';
 import { Logo } from './icons/logo';
 import { calculateInvoiceItemTotal, calculateInvoiceTotals } from '@/lib/utils/invoices';
+import { getCurrencySign } from '@/lib/utils';
 
 
 const styles = StyleSheet.create({
@@ -209,8 +210,16 @@ function InvoicePDF({ invoiceData }: { invoiceData: InvoiceFormValues | null }) 
                             <View style={styles.tableRow} key={i}>
                                 <View style={i % 2 === 0 ? styles.tableCol : styles.tableColAlt}><Text style={styles.tableCell}>{item.description}</Text></View>
                                 <View style={i % 2 === 0 ? styles.tableCol2 : styles.tableColAlt2}><Text style={styles.tableCell}>{item.quantity} {item.unitType}</Text></View>
-                                <View style={i % 2 === 0 ? styles.tableCol2 : styles.tableColAlt2}><Text style={styles.tableCell}>{item.unitPrice}</Text></View>
-                                <View style={i % 2 === 0 ? styles.tableCol2 : styles.tableColAlt2}><Text style={styles.tableCell}>{total.toFixed(2)}</Text></View>
+                                <View style={i % 2 === 0 ? styles.tableCol2 : styles.tableColAlt2}>
+                                    <Text style={styles.tableCell}>
+                                        {getCurrencySign(invoiceData.currency)} {item.unitPrice}
+                                    </Text>
+                                </View>
+                                <View style={i % 2 === 0 ? styles.tableCol2 : styles.tableColAlt2}>
+                                    <Text style={styles.tableCell}>
+                                        {getCurrencySign(invoiceData.currency)} {total.toFixed(2)}
+                                    </Text>
+                                </View>
                             </View>
                         )
                     })}
@@ -252,11 +261,15 @@ function InvoicePDF({ invoiceData }: { invoiceData: InvoiceFormValues | null }) 
                             <View style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column", gap: 4 }}>
                                 <View style={styles.rowSection}>
                                     <Text style={styles.label}>Subtotal: </Text>
-                                    <Text style={styles.text}>{totals.subtotal}</Text>
+                                    <Text style={styles.text}>
+                                        {getCurrencySign(invoiceData.currency)} {totals.subtotal.toFixed(2)}
+                                    </Text>
                                 </View>
                                 <View style={styles.rowSection}>
                                     <Text style={styles.label}>Tax: </Text>
-                                    <Text style={styles.text}>{totals.taxTotal}</Text>
+                                    <Text style={styles.text}>
+                                        {getCurrencySign(invoiceData.currency)} {totals.taxTotal.toFixed(2)}
+                                    </Text>
                                 </View>
                             </View>
                             <View style={{
@@ -267,7 +280,9 @@ function InvoicePDF({ invoiceData }: { invoiceData: InvoiceFormValues | null }) 
                                 borderBottomLeftRadius: 8
                             }}>
                                 <Text style={styles.label}>Total: </Text>
-                                <Text style={styles.text}>{totals.total}</Text>
+                                <Text style={styles.text}>
+                                    {getCurrencySign(invoiceData.currency)} {totals.total.toFixed(2)}
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -302,6 +317,41 @@ function InvoicePDF({ invoiceData }: { invoiceData: InvoiceFormValues | null }) 
                         }}>
                         </View>
                         <Text style={{ ...styles.label }}>Signature</Text>
+                    </View>
+                </View>
+                <View fixed style={{
+                    ...styles.rowSection,
+                    width: "100%",
+                    justifyContent: "center",
+                    position: "absolute",
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                }}>
+                    <View style={{
+                        width: "60%",
+                        display: "flex",
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                        gap: 2,
+                    }}>
+
+                        <Text style={{ ...styles.text, fontSize: 6 }}>
+                            {invoiceData?.sender?.company?.address?.street},
+                            {invoiceData?.sender?.company?.address?.city},
+                            {invoiceData?.sender?.company?.address?.state},
+                            {invoiceData?.sender?.company?.address?.postalCode}&nbsp;
+                            {invoiceData?.sender?.company?.address?.country}
+                        </Text>
+                        <Text style={{ ...styles.text, fontSize: 6 }}>|</Text>
+                        <Text style={{ ...styles.text, fontSize: 6 }}>
+                            Registration Number: {invoiceData?.sender?.company?.companyRegistrationNumber}
+                        </Text>
+                        <Text style={{ ...styles.text, fontSize: 6 }}>|</Text>
+                        <Text style={{ ...styles.text, fontSize: 6 }}>
+                            VAT Number: {invoiceData?.sender?.company?.vatNumber}
+                        </Text>
                     </View>
                 </View>
             </Page>

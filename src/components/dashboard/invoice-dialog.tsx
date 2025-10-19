@@ -14,6 +14,8 @@ import { ScrollArea } from '../ui/scroll-area'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '../ui/drawer'
 import InvoiceViewer from '../invoice-viewer'
+import { PDFViewer } from '@react-pdf/renderer'
+import InvoicePDF from '../invoice-pdf'
 
 interface InvoiceDialogPropsType {
     companyId: string
@@ -85,6 +87,10 @@ function InvoiceDialog({ companyId, direction = "outgoing" }: InvoiceDialogProps
                         {invoiceValues &&
                             <InvoiceViewer invoiceData={invoiceValues} />
                         }
+                        {/* {invoiceValues && <PDFViewer className='w-full h-full'>
+                            <InvoicePDF invoiceData={invoiceValues} />
+                        </PDFViewer>} */}
+
                     </div>
                 </div>
             </DialogContent>

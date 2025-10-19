@@ -6,6 +6,7 @@ import { calculateInvoiceItemTotal, calculateInvoiceTotals } from '@/lib/utils/i
 import { Download, FileText, Loader2 } from 'lucide-react';
 import InvoicePDF from './invoice-pdf';
 import { Button } from './ui/button';
+import { getCurrencySign } from '@/lib/utils';
 
 
 function InvoiceDownloadButton({ invoiceData }: { invoiceData: InvoiceFormValues | null }) {
@@ -211,9 +212,9 @@ function InvoiceViewer({ invoiceData }: { invoiceData: InvoiceFormValues | null 
                                     <p>{item.quantity} {item.unitType}</p>
                                 </div>
                                 <div className='p-2.5 w-[20%]' style={i % 2 === 0 ? { backgroundColor: "hsl(20 5.9% 90%)" } : { backgroundColor: "hsl(60 4.8% 95.9%)" }}>
-                                    <p>{item.unitPrice}</p></div>
+                                    <p>{getCurrencySign(invoiceData.currency)}{item.unitPrice}</p></div>
                                 <div className='p-2.5 w-[20%]' style={i % 2 === 0 ? { backgroundColor: "hsl(20 5.9% 90%)" } : { backgroundColor: "hsl(60 4.8% 95.9%)" }}>
-                                    <p>{total.toFixed(2)} </p>
+                                    <p>{getCurrencySign(invoiceData.currency)}{total.toFixed(2)} </p>
                                 </div>
                             </div>
                         )
@@ -251,18 +252,18 @@ function InvoiceViewer({ invoiceData }: { invoiceData: InvoiceFormValues | null 
                             <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column", gap: 4 }}>
                                 <div className='flex gap-1'>
                                     <h3 className='font-bold'>Subtotal: </h3>
-                                    <p>{totals.subtotal}</p>
+                                    <p>{getCurrencySign(invoiceData.currency)}{totals.subtotal.toFixed(2)}</p>
                                 </div>
                                 <div className='flex gap-1'>
                                     <h3 className='font-bold'>Tax: </h3>
-                                    <p>{totals.taxTotal}</p>
+                                    <p>{getCurrencySign(invoiceData.currency)}{totals.taxTotal.toFixed(2)}</p>
                                 </div>
                             </div>
                             <div className='flex p-2.5 rounded-bl-[8px] rounded-br-[8px] gap-1' style={{
                                 backgroundColor: "hsl(45.4 93.4% 47.5%)",
                             }}>
                                 <h3 className='font-bold'>Total: </h3>
-                                <p>{totals.total}</p>
+                                <p>{getCurrencySign(invoiceData.currency)}{totals.total}</p>
                             </div>
                         </div>
                     </div>
@@ -277,13 +278,31 @@ function InvoiceViewer({ invoiceData }: { invoiceData: InvoiceFormValues | null 
                         <p>{invoiceData.notes}</p>
                     </div>
                     <div className='w-[40%] p-5 flex flex-col justify-end gap-1'>
-                        <div className='w-full aspect-video bg-white/50 border-b-[1px]' style={{
+                        <div className='w-full aspect-video bg-white/50 border-b-[2px]' style={{
                             borderColor: "hsl(45.4 93.4% 47.5%)",
                         }}>
 
                         </div>
                         <h3 className='font-bold'>Signature</h3>
                     </div>
+                </div>
+
+                <div className='w-[80%] flex justify-center flex-wrap gap-0.5 px-5 pb-2 mx-auto' >
+                    <span className='text-[6px]'>
+                        {invoiceData?.sender?.company?.address?.street},
+                        {invoiceData?.sender?.company?.address?.city},
+                        {invoiceData?.sender?.company?.address?.state},
+                        {invoiceData?.sender?.company?.address?.postalCode}&nbsp;
+                        {invoiceData?.sender?.company?.address?.country}
+                    </span>
+                    <span className='text-[6px]'>|</span>
+                    <span className='text-[6px]'>
+                        Registration Number: {invoiceData?.sender?.company?.companyRegistrationNumber}
+                    </span>
+                    <span className='text-[6px]'>|</span>
+                    <span className='text-[6px]'>
+                        VAT Number: {invoiceData?.sender?.company?.vatNumber}
+                    </span>
                 </div>
             </div>
         </div >
