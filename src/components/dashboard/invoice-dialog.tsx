@@ -16,6 +16,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, Dr
 import InvoiceViewer from '../invoice-viewer'
 import { PDFViewer } from '@react-pdf/renderer'
 import InvoicePDF from '../invoice-pdf'
+import { Eye, X } from 'lucide-react'
+import { DialogClose } from '@radix-ui/react-dialog'
 
 interface InvoiceDialogPropsType {
     companyId: string
@@ -24,44 +26,71 @@ interface InvoiceDialogPropsType {
 
 function InvoiceDialog({ companyId, direction = "outgoing" }: InvoiceDialogPropsType) {
     const [open, setOpen] = React.useState(false)
+    const [previewOpen, setPreviewOpen] = React.useState(false)
     const isMobile = useIsMobile()
     const [invoiceValues, setInvoiceValues] = React.useState<InvoiceFormValues | null>(null)
 
 
     if (isMobile) {
-        return <Drawer open={open} onOpenChange={setOpen}>
-            <DrawerTrigger asChild>
-                <Button>
-                    <IconPlus />
-                    <span className="hidden lg:inline">Create Invoice</span>
-                </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <DrawerHeader className="border-b border-border">
-                    <DrawerTitle>Create New Invoice</DrawerTitle>
-                    <DrawerDescription>
-                        Fill in the details below to create a new invoice for your client.
-                    </DrawerDescription>
-                </DrawerHeader>
-                <div className='flex-1 flex-grow flex flex-col w-full h-full overflow-hidden bg-accent'>
-                    <div className='w-full h-full max-h-full overflow-y-auto'>
-                        <div className="flex h-auto flex-col p-4 gap-6">
-                            <InvoiceForm companyId={companyId} direction={direction} />
-                            <div className='w-full min-h-[200px] bg-red-500'>
-                                sdf
+        return <>
+            <Drawer open={open} onOpenChange={setOpen}>
+                <DrawerTrigger asChild>
+                    <Button>
+                        <IconPlus />
+                        <span className="hidden lg:inline">Create Invoice</span>
+                    </Button>
+                </DrawerTrigger>
+                <DrawerContent>
+                    <DrawerHeader className="border-b border-border">
+                        <DrawerTitle>Create New Invoice</DrawerTitle>
+                        <DrawerDescription>
+                            Fill in the details below to create a new invoice for your client.
+                        </DrawerDescription>
+                        <div className='w-full flex'>
+                            <Button className='ml-auto' onClick={() => setPreviewOpen(true)}>
+                                <Eye />
+                            </Button>
+                        </div>
+                    </DrawerHeader>
+                    <div className='flex-1 flex-grow flex flex-col w-full h-full overflow-hidden bg-accent'>
+                        <div className='w-full h-full max-h-full overflow-y-auto'>
+                            <div className="flex h-auto flex-col p-4 gap-6">
+                                <InvoiceForm
+                                    companyId={companyId}
+                                    direction={direction}
+                                    onUpdate={(values) => {
+                                        setInvoiceValues(values)
+                                    }}
+                                />
                             </div>
                         </div>
                     </div>
-                </div>
-            </DrawerContent>
-        </Drawer>
+                </DrawerContent>
+            </Drawer>
+            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                <DialogContent className='min-w-[calc(100%-2rem)] h-[calc(100%-2rem)] flex flex-col p-0 overflow-hidden'>
+                    <DialogHeader className='pt-5'>
+                        <DialogTitle>Invoice Viewer</DialogTitle>
+                        <DialogDescription>
+                            View invoice and send it to your client.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='flex-1 flex flex-col w-full h-full max-h-full overflow-y-auto bg-muted'>
+                        {/* TODO: update responsive for mobile */}
+                        {invoiceValues &&
+                            <InvoiceViewer invoiceData={invoiceValues} />
+                        }
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     }
 
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => { }}>
+                <Button variant="outline" size="sm">
                     <IconPlus />
                     <span className="hidden lg:inline">Create Invoice</span>
                 </Button>

@@ -88,7 +88,7 @@ function InvoiceViewer({ invoiceData }: { invoiceData: InvoiceFormValues | null 
                 )}
             </div>
             <div className='w-full h-full'>
-                <div className='flex justify-between items-end w-full bg-black text-white px-5'>
+                <div className='flex justify-between items-end w-full bg-black text-white px-5 pt-5'>
                     <div className='flex flex-col gap-1 pb-5'>
                         <h1 className='font-bold uppercase underline underline-offset-8 text-6xl'>Invoice</h1>
                         <div className='flex gap-2 mt-4'>
